@@ -75,7 +75,7 @@ void podmenuZrodla() { if (ImGui::BeginMenu(t("ctx_data"))) { if (poz(t("data_re
 void menuSceny() {
   info(L("Scene", "Scena"));
   if (ImGui::BeginMenu(t("ctx_face"))) { for (const char* k : {"holo", "cyber"}) if (poz(t(std::string("face_") + k), A.o.twarz == k)) A.wybierzTwarz(k); ImGui::EndMenu(); }
-  if (poz(t("ctx_recenter"))) { auto& U = Twarz::uzytkownik(); U.yaw = U.pitch = 0; U.zoom = 1; }
+  if (poz(t("ctx_recenter"))) { auto& U = Twarz::uzytkownik(); U.yaw = U.pitch = 0; U.zoom = A.zoomTwarzyMax; }
   if (poz(t("show_ring"), A.o.rings)) { A.o.rings = !A.o.rings; A.zapisz(); } if (poz(t("react"), A.o.react)) { A.o.react = !A.o.react; A.zapisz(); }
   if (poz(L("Small card bar at the bottom of the scene", "Mały pasek kart na dole sceny"), A.o.karty)) { A.o.karty = !A.o.karty; A.zapisz(); } if (poz(L("Live base instead of the voice wave on the slab", "Żywa podstawa zamiast fali głosu na tafli"), A.o.widmo)) { A.o.widmo = !A.o.widmo; A.zapisz(); } if (poz(L("Caption with the model's activity", "Podpis z czynnością modelu"), A.o.caption)) { A.o.caption = !A.o.caption; A.zapisz(); }
   if (ImGui::BeginMenu(L("Motion", "Ruch"))) { for (auto [v, n] : std::initializer_list<std::pair<float, const char*>>{{0.f, L("Still", "Bez ruchu")}, {.5f, L("Calm", "Spokojny")}, {1.f, L("Normal", "Zwykły")}, {1.6f, L("Lively", "Żywy")}}) if (poz(n, std::fabs(A.o.ruch - v) < .05f)) { A.o.ruch = v; A.zapisz(); } ImGui::EndMenu(); }

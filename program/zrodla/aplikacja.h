@@ -45,6 +45,7 @@ struct Aplikacja {
   std::string mSort = "gpu"; bool mMalejaco = false; int mFiltr = 0; std::map<std::string, std::string> silniki;
   // dyski tego komputera i energia z 30 dni
   std::vector<Dysk> dyski; std::vector<std::string> dyskiUkryte; std::vector<Slupek> dni30; std::string dni30Dla; double dni30Nast = 0;
+  float zoomTwarzyMax = 1;                              // najwieksze przyblizenie, przy ktorym glowa miesci sie w wolnym polu
   double puls = -9;                                      // chwila klikniecia w scene
   std::string daneDir, plikUst;
   // czynnosci

@@ -13,7 +13,8 @@
 using namespace ui;
 std::string wskazowka_(const char* s);
 namespace {
-const float SRODEK_GLOWY = .18f;   // o tyle (w jednostkach skali twarzy) srodek glowy lezy pod punktem zaczepienia: dzieki temu glowa stoi posrodku przy kazdym przyblizeniu
+// figura twarzy wzgledem punktu zaczepienia, w jednostkach skali twarzy: od kresek nad czolem (-0,38) do konca szyi (+0,40); zmierzone na zrzutach
+const float FIG_WYS = .80f, FIG_SRODEK = .01f;
 bool otworzMenuKarty = false;
 constexpr ImGuiWindowFlags FL = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing;
 float wl, wr, navH = 0; bool waski = false; ImRect pole;   // pole: miejsce na panele pod gornym paskiem
@@ -118,7 +119,8 @@ void pasekDemo(float cx, float maxW) {
   tekst(d, x0 + pad + lbl, y0 + px(7), fUi(W5), px(10), u(M.warn), wielkie(t("demo")), px(.6f)); int i = 0; for (auto& q : T) { std::string k = q.k; Btn bt{t(q.l), k == "auto" && Sim::autoPlan ? Wlaczony : Zwykly, true, false, std::string(t(q.l)) + "\n" + L("Simulation control: no real model is touched.", "Sterowanie symulacją: żaden prawdziwy model nie jest ruszany.")}; if (btn(d, x0 + pos[i].x, y0 + pos[i].y, bt)) { if (k == "auto") Sim::autoPlan = !Sim::autoPlan; else if (k == "hide") { A.demoOff = true; A.toast("D"); } else Sim::demo(A.s, A.f, k); } i++; } if (ImGui::IsWindowHovered()) A.pod.el = "demo"; ImGui::End();
 }
 // ---- scena: karty graficzne na srodku ----
-Kolor kolorStanu() { auto& f = A.f; if (f.down) return M.bad; if (f.status == "none") return mix(M.acc, .45f, M.dim); if (f.status == "loading" || f.status == "stopping") return M.warn; if (f.phase == "reading") return M.warn; if (f.phase == "thinking") return M.think; if (f.phase == "answering") return M.ok; return M.acc; }
+// kolor podstawy i podpisu: ten sam, ktorym swieci twarz (kolor jej biezacego zachowania); bez twarzy kolor stanu modelu
+Kolor kolorStanu() { auto& f = A.f; if (Twarz::material() > .3f) { auto k = Zach::kolorAktywnego(); return {k[0], k[1], k[2], 1}; } if (f.down) return M.bad; if (f.status == "none") return mix(M.acc, .45f, M.dim); if (f.status == "loading" || f.status == "stopping") return M.warn; if (f.phase == "reading") return M.warn; if (f.phase == "thinking") return M.think; if (f.phase == "answering") return M.ok; return M.acc; }
 float obrot[8] = {};
 // maly znaczek karty w pasku na dole sceny: ikona z wentylatorami, pamiec, temperatura
 float znaczekGpuSzer(float h, const Gpu& g) { float p = h * .5f; return h * .42f + ikonaGpuSzer(h * .56f, 1) + h * .3f + szer(fNum(W7), p, "GPU " + std::to_string(g.index)) + h * .3f + szer(fNum(W5), p, n1(g.vram_used_mb / 1024) + "/" + n0(g.vram_total_mb / 1024) + " GB · " + n0(g.temp_c) + "°") + h * .5f; }
@@ -153,7 +155,7 @@ void scena(float Wp, float Hp) {
   if (ImGui::IsMouseClicked(0)) naKarcie = nadKarta;
   if (act && !naKarcie) { if (!dn) { dn = true; moved = 0; } float dx = io.MouseDelta.x / S, dy = io.MouseDelta.y / S; moved += std::fabs(dx) + std::fabs(dy); spun += std::fabs(dx); if (moved > 4) { ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll); auto& U = Twarz::uzytkownik(); U.yaw -= dx * .006f; U.pitch = std::clamp(U.pitch + dy * .004f, -.5f, .5f); } }
   else if (dn) { dn = false; if (spun > 1800) Zach::graj("dizzy", 2.6f); spun = 0; if (moved < 5) { A.puls = A.teraz; if (A.o.react && Twarz::material() > .5f) { Twarz::kliknieto(); Zach::graj(A.teraz - ostKlik < .35 ? "wink" : "poked", 1.3f); ostKlik = A.teraz; } } }
-  if (hv && !nadKarta && io.MouseWheel != 0 && !io.KeyCtrl) { auto& U = Twarz::uzytkownik(); U.zoom = std::clamp(U.zoom * (io.MouseWheel < 0 ? .94f : 1.06f), .6f, 2.2f); }
+  if (hv && !nadKarta && io.MouseWheel != 0 && !io.KeyCtrl) { auto& U = Twarz::uzytkownik(); U.zoom = U.zoom * (io.MouseWheel < 0 ? .94f : 1.06f); }
   if (hv && !nadKarta) { if (ImGui::IsMouseDoubleClicked(0)) A.skupienie = !A.skupienie;
     if (std::fabs(io.MousePos.y - US.bazaY) < px(26) && std::fabs(io.MousePos.x - cx) < US.pol * 1.2f) { A.pod.el = "widmo"; tipJuz(L("Activity trace", "Ślad aktywności"), std::string(L("The middle is now, the sides are the last seconds. Bars rise when the model reads or writes and when the cards work.", "Środek to teraz, boki to ostatnie sekundy. Słupki rosną, gdy model czyta albo pisze i gdy karty pracują.")) + "\n" + L("Level now", "Poziom teraz") + "\t" + n0(Scena::par().hist[0] * 100) + " %"); }
     else if (Twarz::material() > .5f && std::fabs(io.MousePos.x - cx) < US.pol * .5f && std::fabs(io.MousePos.y - cy) < US.gh * .36f) { auto& b = Zach::aktywne(); A.pod.el = "twarz"; tipJuz(L("Face", "Twarz"), b.n[A.jezyk] + (Zach::powod().empty() ? "" : " · " + Zach::powod()) + "\n-\n" + L("Drag: turn the head · Wheel: zoom", "Przeciągnij: obróć głowę · Kółko: przybliż") + "\n" + L("Click: poke · Double-click: scene only", "Kliknięcie: zaczep · Dwuklik: sama scena") + "\n" + L("Right-click: face and scene menu", "Prawy przycisk: menu twarzy i sceny")); } }
@@ -189,7 +191,12 @@ void budujInterfejs() {
   obslugaChwytu();
   // scena staje w wolnym miejscu z poprzedniej klatki
   ImRect wolne = pole; if (pokaz && !waski) wolne = wolnePole(pole); else if (waski && A.widok == 3 && A.P["energy"].widac) wolne.Max.y = A.P["energy"].r.Min.y; if (wolne.GetWidth() < px(200) || wolne.GetHeight() < px(160)) wolne = pole;
-  zakryta = waski && (A.widok == 1 || A.widok == 2); policzScene((wolne.Min.x + wolne.Max.x) / 2, (wolne.Min.y + wolne.Max.y) / 2, wolne.GetWidth(), wolne.GetHeight(), wolne.Max.y); Twarz::widok(US.cx / Wp, (wolne.Min.y + US.bazaY) * .5f / Hp - SRODEK_GLOWY * US.sc * Twarz::uzytkownik().zoom, US.sc, std::max(0.f, (wolne.Min.x - px(14)) / Wp), std::min(1.f, (wolne.Max.x + px(14)) / Wp)); Twarz::podstawa(!A.o.widmo); Twarz::otoczenie(false, A.o.rings); aktualizujScene(Wp, Hp, io.DeltaTime); scena(Wp, Hp);
+  zakryta = waski && (A.widok == 1 || A.widok == 2); policzScene((wolne.Min.x + wolne.Max.x) / 2, (wolne.Min.y + wolne.Max.y) / 2, wolne.GetWidth(), wolne.GetHeight(), wolne.Max.y); { // glowa z szyja i kreskami nad czolem zawsze miesci sie miedzy gora wolnego pola a podstawa i stoi w jego srodku
+    auto& U = Twarz::uzytkownik(); float gora_ = wolne.Min.y + px(10), dol_ = US.bazaY - px(4), jedn = std::max(1.f, US.sc * Hp), zmax = std::clamp((dol_ - gora_) / (FIG_WYS * jedn), .3f, 3.f);
+    static bool pierwszy = true; if (pierwszy && Twarz::material() > .5f) { pierwszy = false; U.zoom = zmax; } U.zoom = std::clamp(U.zoom, std::min(.45f, zmax), zmax); A.zoomTwarzyMax = zmax;
+    if (getenv("CM_DIAG")) { static double nast = 0; if (A.teraz > nast) { nast = A.teraz + 2; fprintf(stderr, "diag t=%.0f zoom=%.3f zmax=%.3f sc=%.3f gora=%.0f dol=%.0f wolne=%.0f..%.0f x %.0f..%.0f skup=%d\n", A.teraz, U.zoom, zmax, US.sc, gora_, dol_, wolne.Min.y, wolne.Max.y, wolne.Min.x, wolne.Max.x, (int)A.skupienie); } }
+    Twarz::widok(US.cx / Wp, ((gora_ + dol_) * .5f - FIG_SRODEK * jedn * U.zoom) / Hp, US.sc, std::max(0.f, (wolne.Min.x - px(14)) / Wp), std::min(1.f, (wolne.Max.x + px(14)) / Wp)); }
+  Twarz::podstawa(!A.o.widmo); Twarz::otoczenie(false, A.o.rings); aktualizujScene(Wp, Hp, io.DeltaTime); scena(Wp, Hp);
   for (auto& [id, p] : A.P) p.widac = false;
   if (pokaz) {
     if (waski) { if (A.widok == 1) kolumna(LEWE, mar, top + mar, Wp - 2 * mar, Hp - top - 2 * mar - navH); else if (A.widok == 2) kolumna(PRAWE, mar, top + mar, Wp - 2 * mar, Hp - top - 2 * mar - navH); else if (A.widok == 3) dol(mar, Wp - 2 * mar, Hp - mar - navH); }

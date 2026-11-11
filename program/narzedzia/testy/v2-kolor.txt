@@ -1,0 +1,11 @@
+jezyk 1
+czas 1
+ruch 735 300
+czas 13
+zrzut narzedzia/testy/zrzuty/k0.ppm
+czekaj 2
+sim slow
+czas 5
+zrzut narzedzia/testy/zrzuty/k1.ppm
+czekaj 2
+koniec
