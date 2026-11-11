@@ -1,0 +1,15 @@
+jezyk 1
+czekaj 60
+klik 1628 332
+czekaj 10
+pklik 1300 332
+czekaj 8
+zrzut narzedzia/testy/zrzuty/a1.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+klik 1320 22
+czekaj 10
+zrzut narzedzia/testy/zrzuty/a2.ppm
+czekaj 2
+koniec

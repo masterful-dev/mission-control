@@ -1,0 +1,20 @@
+jezyk 1
+energia dni30
+czas 4
+ruch 1100 850
+czas 1
+zrzut narzedzia/testy/zrzuty/v2-14-30dni.ppm
+czekaj 2
+pklik 1300 362
+czas 0.3
+klik 1470 529
+czas 0.6
+zrzut narzedzia/testy/zrzuty/v2-15-wlasciwosci.ppm
+czekaj 2
+klawisz Esc
+czas 0.3
+klik 1653 23
+czas 0.5
+zrzut narzedzia/testy/zrzuty/v2-16-ustawienia.ppm
+czekaj 2
+koniec

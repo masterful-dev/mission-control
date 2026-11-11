@@ -1,0 +1,43 @@
+jezyk 1
+czekaj 200
+pklik 100 68
+czekaj 8
+zrzut narzedzia/testy/zrzuty/k1-panel.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+pklik 1300 480
+czekaj 8
+zrzut narzedzia/testy/zrzuty/k2-model.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+pklik 700 500
+czekaj 8
+zrzut narzedzia/testy/zrzuty/k3-scena.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+pklik 60 608
+czekaj 8
+zrzut narzedzia/testy/zrzuty/k4-dysk.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+pklik 60 130
+czekaj 8
+zrzut narzedzia/testy/zrzuty/k5-gpu.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+pklik 300 24
+czekaj 8
+zrzut narzedzia/testy/zrzuty/k6-gora.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+klik 1654 22
+czekaj 14
+zrzut narzedzia/testy/zrzuty/d1-ustawienia.ppm
+czekaj 2
+koniec

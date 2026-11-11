@@ -1,0 +1,2 @@
+czekaj 30
+koniec

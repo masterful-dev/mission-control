@@ -1,0 +1,10 @@
+jezyk 1
+czas 1
+ruch 600 300
+czas 13
+zrzut narzedzia/testy/zrzuty/v2-40-twarz-mysli.ppm
+czekaj 2
+czas 9
+zrzut narzedzia/testy/zrzuty/v2-41-twarz-odpowiada.ppm
+czekaj 2
+koniec

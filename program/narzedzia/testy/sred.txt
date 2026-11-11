@@ -1,0 +1,5 @@
+jezyk 1
+czekaj 180
+zrzut narzedzia/testy/zrzuty/s1.ppm
+czekaj 2
+koniec

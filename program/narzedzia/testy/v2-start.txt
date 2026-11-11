@@ -1,0 +1,5 @@
+czekaj 150
+zrzut narzedzia/testy/zrzuty/v2-01-start.ppm
+czekaj 2
+dysk
+koniec

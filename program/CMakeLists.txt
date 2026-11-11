@@ -1,0 +1,63 @@
+cmake_minimum_required(VERSION 3.24)
+project(centrum VERSION 2.1.0 LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+set(Z ${CMAKE_SOURCE_DIR}/zewnetrzne)
+
+# SDL3: tylko okno, wejscie i OpenGL. Reszta wylaczona, zeby program byl maly.
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+foreach(o AUDIO CAMERA GPU RENDER HAPTIC JOYSTICK HIDAPI SENSOR POWER VULKAN OPENGLES WAYLAND KMSDRM DBUS IBUS FRIBIDI LIBTHAI LIBUDEV)
+  set(SDL_${o} OFF CACHE BOOL "" FORCE)
+endforeach()
+if(UNIX AND NOT APPLE)
+  set(SDL_X11 ON CACHE BOOL "" FORCE)
+  list(APPEND CMAKE_PREFIX_PATH ${Z}/x11/usr)
+  list(APPEND CMAKE_LIBRARY_PATH ${Z}/x11/usr/lib/x86_64-linux-gnu)
+  include_directories(SYSTEM ${Z}/x11/usr/include)
+  set(CMAKE_REQUIRED_INCLUDES ${Z}/x11/usr/include)
+endif()
+add_subdirectory(${Z}/sdl EXCLUDE_FROM_ALL)
+
+# FreeType: ostre male litery w panelach
+set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+add_subdirectory(${Z}/freetype EXCLUDE_FROM_ALL)
+
+add_library(imgui STATIC
+  ${Z}/imgui/imgui.cpp ${Z}/imgui/imgui_draw.cpp ${Z}/imgui/imgui_tables.cpp ${Z}/imgui/imgui_widgets.cpp
+  ${Z}/imgui/backends/imgui_impl_sdl3.cpp ${Z}/imgui/backends/imgui_impl_opengl3.cpp
+  ${Z}/imgui/misc/freetype/imgui_freetype.cpp ${Z}/imgui/misc/cpp/imgui_stdlib.cpp)
+target_include_directories(imgui PUBLIC ${Z}/imgui ${Z}/imgui/backends ${Z}/imgui/misc/cpp)
+target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DEFINE_MATH_OPERATORS)
+target_link_libraries(imgui PUBLIC SDL3::SDL3-static freetype)
+
+# twarz: hologram z oryginalnego Centrum Misji
+file(GLOB TWARZ CONFIGURE_DEPENDS zrodla/twarz/*.cpp)
+add_library(centrum_twarz STATIC ${TWARZ})
+target_include_directories(centrum_twarz PUBLIC zrodla)
+target_link_libraries(centrum_twarz PUBLIC SDL3::SDL3-static)
+
+file(GLOB ZRODLA CONFIGURE_DEPENDS zrodla/*.cpp)
+add_executable(centrum WIN32 ${ZRODLA})
+target_include_directories(centrum PRIVATE zrodla ${Z}/jednoplikowe)
+target_link_libraries(centrum PRIVATE imgui centrum_twarz)
+if(WIN32)
+  target_compile_definitions(centrum PRIVATE _WIN32_WINNT=0x0A00 WINVER=0x0A00 NOMINMAX)
+  target_link_libraries(centrum PRIVATE ws2_32 iphlpapi crypt32 -static -static-libgcc -static-libstdc++)
+endif()
+if(WIN32)
+  set(WYNIK ${CMAKE_SOURCE_DIR}/../bin/windows)
+else()
+  set(WYNIK ${CMAKE_SOURCE_DIR}/../bin)
+endif()
+set_target_properties(centrum PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${WYNIK} RUNTIME_OUTPUT_DIRECTORY_RELEASE ${WYNIK})

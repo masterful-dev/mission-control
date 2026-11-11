@@ -1,0 +1,17 @@
+jezyk 1
+czas 1
+pklik 1300 400
+czas 0.4
+klik 1350 497
+czas 0.8
+zrzut narzedzia/testy/zrzuty/v2-24-wlasciwosci.ppm
+czekaj 2
+klawisz Esc
+czas 0.3
+klik 1653 23
+czas 0.5
+klik 420 330
+czas 0.5
+zrzut narzedzia/testy/zrzuty/v2-25-ustawienia-scena.ppm
+czekaj 2
+koniec

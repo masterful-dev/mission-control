@@ -1,0 +1,6 @@
+czekaj 10
+zasobnik 1
+czekaj 60
+zasobnik 0
+czekaj 5
+koniec

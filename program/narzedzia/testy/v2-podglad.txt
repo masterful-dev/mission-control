@@ -1,0 +1,6 @@
+jezyk 1
+czas 3
+ruch 1300 500
+zrzut narzedzia/testy/zrzuty/v2-30-prawdziwe-dane.ppm
+czekaj 2
+koniec

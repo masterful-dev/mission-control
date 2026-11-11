@@ -1,0 +1,7 @@
+program/build/
+program/build-win/
+program/zewnetrzne/llvm-mingw/
+program/zewnetrzne/_pobrane/
+bin/
+twarze/
+*.ppm

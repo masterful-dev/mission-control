@@ -1,0 +1,20 @@
+czekaj 160
+zrzut narzedzia/testy/zrzuty/p-1680.ppm
+czekaj 2
+rozmiar 1366 768
+czekaj 20
+zrzut narzedzia/testy/zrzuty/p-1366.ppm
+czekaj 2
+rozmiar 1100 700
+czekaj 20
+zrzut narzedzia/testy/zrzuty/p-1100.ppm
+czekaj 2
+rozmiar 800 900
+czekaj 20
+zrzut narzedzia/testy/zrzuty/p-800.ppm
+czekaj 2
+rozmiar 480 800
+czekaj 20
+zrzut narzedzia/testy/zrzuty/p-480.ppm
+czekaj 2
+koniec

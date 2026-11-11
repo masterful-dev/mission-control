@@ -1,0 +1,21 @@
+jezyk 1
+czekaj 180
+klik 180 781
+czekaj 12
+zrzut narzedzia/testy/zrzuty/w1.ppm
+czekaj 2
+klik 300 781
+czekaj 12
+zrzut narzedzia/testy/zrzuty/w2.ppm
+czekaj 2
+klik 420 781
+czekaj 12
+zrzut narzedzia/testy/zrzuty/w3.ppm
+czekaj 2
+pklik 240 300
+czekaj 10
+zrzut narzedzia/testy/zrzuty/w4.ppm
+czekaj 2
+klawisz Esc
+czekaj 4
+koniec

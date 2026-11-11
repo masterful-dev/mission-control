@@ -1,0 +1,26 @@
+jezyk 1
+czekaj 120
+klik 400 940
+czekaj 12
+zrzut narzedzia/testy/zrzuty/l1-energia.ppm
+czekaj 2
+klik 400 940
+czekaj 8
+klik 60 130
+czekaj 16
+zrzut narzedzia/testy/zrzuty/l2-gpu.ppm
+czekaj 2
+klik 60 130
+czekaj 6
+wcisnij 120 68
+ruch 400 200
+ruch 900 400
+ruch 1300 600
+czekaj 6
+zrzut narzedzia/testy/zrzuty/l3-przeciag.ppm
+czekaj 2
+pusc 1300 600
+czekaj 12
+zrzut narzedzia/testy/zrzuty/l4-po.ppm
+czekaj 2
+koniec

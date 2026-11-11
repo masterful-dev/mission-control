@@ -1,0 +1,7 @@
+jezyk 1
+czas 1
+pklik 1300 400
+czas 0.4
+zrzut narzedzia/testy/zrzuty/v2-23-menu.ppm
+czekaj 2
+koniec

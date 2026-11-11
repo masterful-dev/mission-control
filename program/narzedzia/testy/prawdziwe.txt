@@ -1,0 +1,4 @@
+czekaj 120
+zrzut narzedzia/testy/zrzuty/r-1680.ppm
+czekaj 2
+koniec

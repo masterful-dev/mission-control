@@ -1,0 +1,28 @@
+jezyk 1
+czas 1
+ruch 735 300
+czas 14
+zrzut narzedzia/testy/zrzuty/s1.ppm
+czekaj 2
+kolo 1
+kolo 1
+kolo 1
+kolo 1
+kolo 1
+czas 2
+zrzut narzedzia/testy/zrzuty/s2.ppm
+czekaj 2
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+kolo -1
+czas 2
+zrzut narzedzia/testy/zrzuty/s3.ppm
+czekaj 2
+koniec

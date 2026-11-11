@@ -1,0 +1,11 @@
+{
+  "id": "centrum-misji-v2",
+  "nazwa": "Centrum Misji V2",
+  "wersja": "2.1.0",
+  "gniazdo": "centrum",
+  "rodzaj": "okno",
+  "start": [
+    "/mnt/RUNE/PROJEKTY/CENTRUM-MISJI-V2/bin/centrum",
+    "--dok"
+  ]
+}

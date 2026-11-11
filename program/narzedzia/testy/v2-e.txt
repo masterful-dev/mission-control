@@ -1,0 +1,13 @@
+jezyk 1
+czas 1.5
+zrzut narzedzia/testy/zrzuty/v2-20-bez-modelu.ppm
+czekaj 2
+ruch 690 698
+czas 1
+zrzut narzedzia/testy/zrzuty/v2-21-chmurka-pasek.ppm
+czekaj 2
+ruch 600 300
+czas 13
+zrzut narzedzia/testy/zrzuty/v2-22-model-pracuje.ppm
+czekaj 2
+koniec

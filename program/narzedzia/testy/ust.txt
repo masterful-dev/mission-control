@@ -1,0 +1,29 @@
+jezyk 1
+czekaj 60
+klik 1654 22
+czekaj 14
+klik 400 259
+czekaj 10
+zrzut narzedzia/testy/zrzuty/u2.ppm
+czekaj 2
+klik 400 292
+czekaj 10
+zrzut narzedzia/testy/zrzuty/u3.ppm
+czekaj 2
+klik 400 325
+czekaj 10
+zrzut narzedzia/testy/zrzuty/u4.ppm
+czekaj 2
+klik 400 358
+czekaj 10
+zrzut narzedzia/testy/zrzuty/u5.ppm
+czekaj 2
+klik 400 391
+czekaj 10
+zrzut narzedzia/testy/zrzuty/u6.ppm
+czekaj 2
+klik 400 424
+czekaj 10
+zrzut narzedzia/testy/zrzuty/u7.ppm
+czekaj 2
+koniec

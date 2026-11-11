@@ -1,0 +1,4 @@
+rozmiar 1680 962
+czekaj 200
+zrzut narzedzia/testy/zrzuty/a-1680.ppm
+koniec

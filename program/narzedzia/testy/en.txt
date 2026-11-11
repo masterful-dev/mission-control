@@ -1,0 +1,5 @@
+jezyk 0
+czekaj 100
+zrzut narzedzia/testy/zrzuty/e-1680.ppm
+czekaj 2
+koniec

@@ -1,0 +1,11 @@
+# Przekroj na Windows: llvm-mingw z katalogu zewnetrzne
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
+set(LM "${CMAKE_CURRENT_LIST_DIR}/../zewnetrzne/llvm-mingw")
+set(CMAKE_C_COMPILER "${LM}/bin/x86_64-w64-mingw32-clang")
+set(CMAKE_CXX_COMPILER "${LM}/bin/x86_64-w64-mingw32-clang++")
+set(CMAKE_RC_COMPILER "${LM}/bin/x86_64-w64-mingw32-windres")
+set(CMAKE_FIND_ROOT_PATH "${LM}/x86_64-w64-mingw32")
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)

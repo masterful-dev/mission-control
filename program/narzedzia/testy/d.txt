@@ -1,0 +1,6 @@
+czekaj 60
+klik 1654 22
+czekaj 12
+zrzut narzedzia/testy/zrzuty/d1-ustawienia.ppm
+czekaj 2
+koniec

@@ -1,0 +1,12 @@
+jezyk 1
+energia dni30
+czas 2.5
+ruch 1100 850
+czas 1
+zrzut narzedzia/testy/zrzuty/v2-12-prawdziwe-30dni.ppm
+czekaj 2
+rozmiar 800 900
+czas 1
+zrzut narzedzia/testy/zrzuty/v2-13-waskie.ppm
+czekaj 2
+koniec

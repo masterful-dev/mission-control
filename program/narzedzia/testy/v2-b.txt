@@ -1,0 +1,20 @@
+jezyk 1
+czas 0.8
+wcisnij 1668 950
+czas 0.2
+ruch 1560 700
+czas 0.3
+zrzut narzedzia/testy/zrzuty/v2-10-rozciaganie.ppm
+czekaj 2
+pusc 1560 700
+czas 0.4
+pklik 1300 400
+czas 0.3
+klawisz Esc
+czas 0.2
+tekst po-esc
+klik 1300 400
+czas 0.4
+zrzut narzedzia/testy/zrzuty/v2-11-rozwiniety-model.ppm
+czekaj 2
+koniec

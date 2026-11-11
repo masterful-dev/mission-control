@@ -1,0 +1,47 @@
+jezyk 1
+czas 1
+ruch 1420 432
+czas 1.2
+zrzut narzedzia/testy/zrzuty/v2-02-chmurka-model.ppm
+czekaj 2
+ruch 150 705
+czas 1.2
+zrzut narzedzia/testy/zrzuty/v2-03-chmurka-dysk.ppm
+czekaj 2
+ruch 1010 830
+czas 1.2
+zrzut narzedzia/testy/zrzuty/v2-04-chmurka-energia.ppm
+czekaj 2
+pklik 1420 432
+czas 0.3
+zrzut narzedzia/testy/zrzuty/v2-05-menu-model.ppm
+czekaj 2
+klawisz Esc
+czas 0.2
+energia miesiac
+ruch 1060 840
+czas 1.2
+zrzut narzedzia/testy/zrzuty/v2-06-energia-miesiac.ppm
+czekaj 2
+ruch 600 300
+czas 12
+ruch 610 300
+zrzut narzedzia/testy/zrzuty/v2-07-model-pracuje.ppm
+czekaj 2
+wcisnij 1668 950
+czas 0.2
+ruch 1500 800
+czas 0.3
+zrzut narzedzia/testy/zrzuty/v2-08-rozciaganie.ppm
+czekaj 2
+pusc 1500 800
+czas 0.3
+wcisnij 100 68
+czas 0.2
+ruch 500 200
+czas 0.3
+pusc 500 200
+czas 0.5
+zrzut narzedzia/testy/zrzuty/v2-09-po-przesunieciu.ppm
+czekaj 2
+koniec

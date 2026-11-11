@@ -1,0 +1,8 @@
+jezyk 1
+energia dni30
+czas 5
+ruch 1000 850
+czas 1
+zrzut narzedzia/testy/zrzuty/v2-14-30dni.ppm
+czekaj 2
+koniec
