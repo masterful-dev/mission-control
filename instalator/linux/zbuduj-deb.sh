@@ -166,7 +166,7 @@ if [ "$1" = remove ] || [ "$1" = purge ]; then systemctl --global disable missio
 exit 0
 S
 chmod 755 "$P/DEBIAN/postinst" "$P/DEBIAN/prerm"
-find "$P" -type d -exec chmod 755 {} +; find "$P/opt" "$P/usr/share" -type f ! -name start.sh -exec chmod 644 {} +
+find "$P" -type d -exec chmod 755 {} +; find "$P/opt" "$P/usr/share" -type f ! -name mission-control ! -name start.sh -exec chmod 644 {} +
 mkdir -p "$K/wydanie"; W="$K/wydanie/mission-control_${WERSJA}_amd64.deb"
 fakeroot dpkg-deb --build --root-owner-group "$P" "$W" >/dev/null
 echo "$W"; ls -la "$W"
