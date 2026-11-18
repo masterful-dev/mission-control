@@ -1,0 +1,22 @@
+// Zasoby programu na Windows: ikona pliku .exe i opis wersji.
+1 ICON "../../instalator/ikona/centrum-misji.ico"
+1 VERSIONINFO
+FILEVERSION 2,1,0,0
+PRODUCTVERSION 2,1,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Masterful"
+      VALUE "FileDescription", "Centrum Misji"
+      VALUE "FileVersion", "2.1.0"
+      VALUE "ProductName", "Centrum Misji"
+      VALUE "ProductVersion", "2.1.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

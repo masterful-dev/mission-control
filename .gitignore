@@ -5,3 +5,7 @@ program/zewnetrzne/_pobrane/
 bin/
 twarze/
 *.ppm
+kopie-skrotow-*/
+instalator/linux/pakiet/
+wydanie/
+instalator/windows/robocze/
