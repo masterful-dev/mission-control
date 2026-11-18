@@ -1,0 +1,13 @@
+MISSION CONTROL - TERMS OF USE
+
+1. The program is provided "as is", without warranty of any kind. The author is not
+   liable for any damage, data loss, hardware failure or other consequence of
+   installing or using the program.
+2. You install and use the program entirely at your own risk.
+3. Without the author's written consent you may not modify the program, use its code
+   in whole or in part, reverse engineer it, or distribute modified versions.
+4. Bundled third-party components remain under their own licences. Their list and
+   full licence texts are in THIRD-PARTY-NOTICES.txt.
+
+Author: Masterful
+Wersja polska: LICENCJA.txt

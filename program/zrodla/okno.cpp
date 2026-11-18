@@ -208,6 +208,7 @@ void budujInterfejs() {
   if (!io.WantTextInput) { if (ImGui::IsKeyPressed(ImGuiKey_F, false)) A.skupienie = !A.skupienie; if (ImGui::IsKeyPressed(ImGuiKey_D, false)) A.demoOff = !A.demoOff; }
   if (io.KeyCtrl && io.MouseWheel != 0) { A.zoom = std::clamp(A.zoom + (io.MouseWheel > 0 ? .1f : -.1f), .7f, 2.f); A.zapisz(); }
   if (ImGui::IsMouseReleased(1) && !A.chwyt.aktywny && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId)) { A.menu = A.pod; ImGui::OpenPopup("##menu"); }
+  if (!A.o.warunki && A.dialog == Dialog::Brak && !A.otworzDialog) A.pokazDialog(Dialog::Warunki);
   if (otworzMenuKarty) { otworzMenuKarty = false; ImGui::OpenPopup("##menu"); }
   rysujMenu(); rysujDialogi(); rysujTip(A.teraz);
   if (A.teraz < A.toastDo && !A.toastTxt.empty()) { auto* fg = ImGui::GetForegroundDrawList(); float w = szer(fUi(W5), px(12), A.toastTxt) + px(28), x = (Wp - w) / 2, y = Hp - px(64 + 31); fg->AddRectFilled({x, y}, {x + w, y + px(31)}, u(M.panel), px(M.r)); fg->AddRect({x, y}, {x + w, y + px(31)}, u(M.acc), px(M.r), px(1)); tekst(fg, x + px(14), y + px(8), fUi(W5), px(12), u(M.txt), A.toastTxt); }

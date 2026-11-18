@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CENTRUM MISJI / TACTICAL OPS</title>
+<style>
+/* ============================================================
+   CENTRUM MISJI / TACTICAL OPS  (ops-wall, dane z WS 8770)
+   Jezyk: holograficzny HUD. Jedno akcentowanie (cyjan), bursztyn
+   i czerwien WYLACZNIE dla stanu. Zero bibliotek, zero CDN.
+   ============================================================ */
+:root{
+  --bg:#03080c; --bg2:#06121a;
+  --acc:#6fe6ff;            /* jedyny akcent */
+  --acc-dim:rgba(111,230,255,.45);
+  --acc-soft:rgba(111,230,255,.14);
+  --warn:#ffb545; --bad:#ff5454; --ok:#43e0a0;
+  --txt:#d9f2fa; --mut:#93b8c7; --dim:#5d8698;
+  --line:rgba(111,230,255,.16);
+  --panel:linear-gradient(180deg, rgba(9,31,42,.55), rgba(4,14,20,.82));
+  --mono:ui-monospace,"JetBrains Mono","Cascadia Mono","DejaVu Sans Mono",Consolas,monospace;
+  --cut:12px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font:500 12px/1.35 var(--mono); letter-spacing:.02em;
+  display:grid; grid-template-rows:52px minmax(0,1fr) 200px 24px; gap:8px;
+  padding:8px; overflow:hidden;
+}
+/* tlo: siatka + poswiata + winieta */
+body::before{
+  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(23,90,120,.35), transparent 70%),
+    radial-gradient(900px 600px at 100% 110%, rgba(12,52,74,.35), transparent 72%),
+    linear-gradient(rgba(111,230,255,.045) 1px, transparent 1px) 0 0/100% 34px,
+    linear-gradient(90deg, rgba(111,230,255,.045) 1px, transparent 1px) 0 0/34px 100%,
+    var(--bg);
+}
+body::after{ /* winieta + delikatny szum */
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,.65) 100%),
+    repeating-linear-gradient(0deg, rgba(111,230,255,.022) 0 1px, transparent 1px 3px);
+  mix-blend-mode:screen; opacity:.9;
+}
+@media (prefers-reduced-motion: no-preference){
+  body::after{animation:drift 9s steps(14) infinite}
+  @keyframes drift{0%{background-position:0 0,0 0}100%{background-position:0 0,0 3px}}
+}
+
+/* ---------------- panel ---------------- */
+.panel{
+  position:relative; min-height:0; background:var(--panel);
+  border:1px solid var(--line); border-radius:0;
+  padding:8px 10px 9px; overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(111,230,255,.09), inset 0 0 44px rgba(111,230,255,.030);
+}
+.panel::before,.panel::after{content:""; position:absolute; width:13px; height:13px; pointer-events:none}
+.panel::before{top:-1px; left:-1px; border-top:2px solid var(--acc); border-left:2px solid var(--acc); opacity:.85}
+.panel::after{bottom:-1px; right:-1px; border-bottom:2px solid var(--acc); border-right:2px solid var(--acc); opacity:.85}
+.ph{display:flex; align-items:baseline; gap:8px; padding-bottom:6px; margin-bottom:7px; border-bottom:1px solid var(--acc-soft)}
+.ph b{font-size:11px; font-weight:700; letter-spacing:.16em; color:var(--acc)}
+.ph i{font-style:normal; font-size:9px; letter-spacing:.18em; color:var(--dim)}
+.ph .sp{flex:1}
+.ph .tag{font-size:9px; letter-spacing:.14em; color:var(--mut); border:1px solid var(--line); padding:1px 5px}
+.num{font-variant-numeric:tabular-nums}
+.mut{color:var(--mut)} .dim{color:var(--dim)} .acc{color:var(--acc)}
+.warn{color:var(--warn)} .bad{color:var(--bad)} .ok{color:var(--ok)}
+
+/* ---------------- gorna belka ---------------- */
+.topbar{
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:16px;
+  border:1px solid var(--line); background:var(--panel); padding:0 12px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);
+}
+.brand{display:flex; align-items:center; gap:10px}
+.brand .mk{width:22px; height:22px; flex:none; color:var(--acc)}
+.brand .tx b{display:block; font-size:12px; letter-spacing:.22em; color:var(--txt)}
+.brand .tx i{display:block; font-style:normal; font-size:9px; letter-spacing:.28em; color:var(--dim)}
+.chips{display:flex; gap:6px; justify-content:center}
+.chip{
+  font:inherit; font-size:10px; letter-spacing:.16em; color:var(--mut);
+  background:transparent; border:1px solid var(--line); padding:4px 10px; cursor:pointer;
+}
+.chip[aria-selected="true"]{color:#03181f; background:var(--acc); border-color:var(--acc); font-weight:700}
+.chip:focus-visible{outline:2px solid var(--acc); outline-offset:2px}
+.meta{display:flex; align-items:center; gap:14px; justify-content:flex-end}
+.led{width:7px; height:7px; background:var(--ok); box-shadow:0 0 8px currentColor; color:var(--ok)}
+.led.off{background:var(--bad); color:var(--bad)}
+.led.demo{background:var(--warn); color:var(--warn)}
+.clock{font-size:15px; letter-spacing:.08em; color:var(--txt)}
+.clock small{font-size:9px; letter-spacing:.18em; color:var(--dim); margin-left:6px}
+.op{font-size:9px; letter-spacing:.18em; color:var(--dim); text-align:right; line-height:1.5}
+
+/* ---------------- sciana ---------------- */
+.wall{display:grid; grid-template-columns:286px minmax(0,1fr) 348px; gap:8px; min-height:0}
+.col{display:grid; gap:8px; min-height:0; min-width:0}
+.col-left{grid-template-rows:auto auto auto minmax(0,1fr)}
+.col-center{grid-template-rows:minmax(0,1fr) 176px}
+.col-right{grid-template-rows:minmax(0,1fr) 200px}
+.duo{display:grid; grid-template-columns:1.35fr 1fr; gap:8px; min-height:0}
+.strip{display:grid; grid-template-columns:minmax(0,1fr) 292px 292px; gap:8px; min-height:0}
+
+/* ---------------- rdzen GPU ---------------- */
+.core{display:grid; grid-template-columns:minmax(0,1fr); gap:4px; align-content:start}
+.core .hd{display:flex; align-items:baseline; gap:7px; font-size:9px; letter-spacing:.15em; color:var(--dim); min-width:0}
+.core .hd b{color:var(--acc); font-size:10px; letter-spacing:.18em; flex:none}
+.core .hd .nm{color:var(--mut); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.core .hd .sp{flex:1}
+.core .body{display:grid; grid-template-columns:56px minmax(0,1fr); gap:10px; align-items:center}
+.core .gauge{position:relative; width:56px; height:56px}
+.core .gauge svg{display:block; width:56px; height:56px; transform:rotate(-90deg)}
+.core .gauge .pc{position:absolute; inset:0; display:grid; place-content:center; text-align:center}
+.core .gauge .pc b{display:block; font-size:14px; letter-spacing:-.02em; color:var(--txt)}
+.core .gauge .pc i{font-style:normal; font-size:8px; letter-spacing:.16em; color:var(--dim)}
+.core .rows{display:grid; gap:3px; min-width:0}
+.core .row{grid-template-columns:34px minmax(0,1fr) 48px}
+.core .proc b{font-weight:600}
+.row{display:grid; grid-template-columns:30px minmax(0,1fr) auto; align-items:center; gap:7px; font-size:10px}
+.row .k{color:var(--dim); letter-spacing:.14em}
+.row .v{text-align:right; color:var(--txt)}
+.bar{position:relative; height:5px; background:rgba(111,230,255,.09); overflow:hidden}
+.bar i{position:absolute; inset:0 auto 0 0; width:0; background:var(--acc); box-shadow:0 0 6px var(--acc-soft)}
+.bar.w i{background:var(--warn); box-shadow:none} .bar.b i{background:var(--bad); box-shadow:none}
+.minispark{grid-column:1/-1; display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:1px; height:15px; align-items:end; margin-top:3px}
+.minispark i{display:block; min-height:1px; background:var(--acc); opacity:.75}
+.minispark i.z{background:rgba(111,230,255,.10); opacity:1}
+.procs{grid-column:1/-1; display:flex; flex-wrap:wrap; gap:4px; margin-top:3px}
+.sweep-g{transform-origin:500px 330px; transform-box:view-box}
+@media (prefers-reduced-motion: no-preference){ .sweep-g{animation:swspin 6s linear infinite} @keyframes swspin{to{transform:rotate(360deg)}} }
+.ready{display:grid; gap:3px; align-content:start; overflow:hidden}
+.rdy{display:grid; grid-template-columns:minmax(0,1fr) 44px; gap:6px; align-items:center; font-size:10px; padding:2px 0; border-bottom:1px solid rgba(111,230,255,.07)}
+.rdy .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rdy .why{grid-column:1/-1; color:var(--dim); font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rdy .ct{text-align:right; color:var(--dim); font-size:9px}
+.proc{font-size:9px; letter-spacing:.08em; color:var(--mut); border:1px solid var(--acc-soft); padding:1px 5px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.proc b{color:var(--txt); font-weight:600}
+
+/* ---------------- sys ---------------- */
+.sys{display:grid; gap:3px; grid-template-rows:auto auto; align-content:start; overflow:auto; scrollbar-width:thin; scrollbar-color:var(--acc-dim) transparent}
+.sys::-webkit-scrollbar{width:5px}
+.sys::-webkit-scrollbar-thumb{background:var(--acc-dim)}
+.sys .rows{display:grid; gap:2px}
+.sys .row{font-size:9.5px}
+.sys .en24{display:grid; gap:2px}
+.sys .sec{margin-top:4px; padding-top:4px}
+.sys .row{grid-template-columns:42px minmax(0,1fr) 104px}
+.sys .row .v{font-size:9px; letter-spacing:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sys .sec{margin-top:6px; padding-top:5px; border-top:1px solid var(--acc-soft); font-size:9px; letter-spacing:.18em; color:var(--dim)}
+.sys .kwh{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:2px; height:26px; align-items:end; margin-top:4px}
+.sys .kwh i{display:block; background:var(--acc-soft); border-top:1px solid var(--acc-dim)}
+
+/* ---------------- mapa taktyczna ---------------- */
+.map{display:grid; grid-template-rows:auto minmax(0,1fr); padding-bottom:6px}
+.mapwrap{position:relative; min-height:0; overflow:hidden}
+.mapwrap svg{position:absolute; inset:0; width:100%; height:100%}
+.sweep{
+  position:absolute; inset:0; pointer-events:none; opacity:.55;
+  background:conic-gradient(from 0deg, rgba(111,230,255,0) 0deg, rgba(111,230,255,.02) 250deg, rgba(111,230,255,.22) 342deg, rgba(111,230,255,.5) 360deg);
+  -webkit-mask:radial-gradient(circle at 50% 50%, #000 0 34%, #000 34.4%, transparent 35%);
+  mask:radial-gradient(circle at 50% 50%, #000 0 34%, #000 34.4%, transparent 35%);
+}
+@media (prefers-reduced-motion: no-preference){ .sweep{animation:spin 5.5s linear infinite} @keyframes spin{to{transform:rotate(360deg)}} }
+.readout{position:absolute; font-size:9px; letter-spacing:.12em; color:var(--dim); pointer-events:none}
+.readout.tl{top:6px; left:8px} .readout.tr{top:6px; right:8px}
+.readout.bl{bottom:6px; left:8px} .readout.br{bottom:6px; right:8px}
+
+/* ---------------- historia / moc ---------------- */
+.hist{display:grid; gap:6px}
+.hist .line{display:grid; grid-template-columns:44px minmax(0,1fr) 42px; align-items:center; gap:7px; font-size:9px}
+.segs{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:1px; height:14px; align-items:end}
+.segs i{display:block; background:var(--acc); opacity:.85; min-height:1px}
+.segs i.q1{opacity:.28} .segs i.q2{opacity:.55} .segs i.q3{opacity:.8} .segs i.q4{opacity:1}
+.powerbig{display:flex; align-items:baseline; gap:6px; margin:2px 0 4px}
+.powerbig b{font-size:30px; letter-spacing:-.03em; color:var(--txt)}
+.powerbig span{font-size:9px; letter-spacing:.18em; color:var(--dim)}
+.spark{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:2px; height:30px; align-items:end; margin:4px 0 6px}
+.spark i{display:block; background:var(--acc-soft); border-top:1px solid var(--acc-dim)}
+.pgrid{display:grid; grid-template-columns:1fr 1fr; gap:3px 14px}
+.pgrid div{display:flex; justify-content:space-between; gap:6px; font-size:9px; border-bottom:1px solid rgba(111,230,255,.07); padding-bottom:1px}
+.pgrid .k{color:var(--dim); letter-spacing:.12em}
+.pgrid .v{color:var(--txt)}
+.powerbig .sp{flex:1}
+.powerbig .tag{align-self:center}
+
+/* ---------------- roster ---------------- */
+.roster{display:grid; grid-template-rows:auto minmax(0,1fr) auto}
+.rosft{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:6px; padding-top:6px; border-top:1px solid var(--acc-soft)}
+.rosft div{font-size:9px; letter-spacing:.12em; color:var(--dim)}
+.rosft b{display:block; font-size:14px; color:var(--txt); letter-spacing:0}
+.list{overflow:auto; scrollbar-width:thin; scrollbar-color:var(--acc-dim) transparent}
+.list::-webkit-scrollbar{width:6px}
+.list::-webkit-scrollbar-thumb{background:var(--acc-dim)}
+.units{display:grid; gap:0}
+.unit{
+  display:grid; grid-template-columns:12px minmax(0,1fr) 46px 40px; gap:6px; align-items:center;
+  padding:3px 4px; border-bottom:1px solid rgba(111,230,255,.07); cursor:pointer; font-size:10px;
+}
+.unit:hover{background:rgba(111,230,255,.06)}
+.unit[aria-selected="true"]{background:rgba(111,230,255,.11); box-shadow:inset 2px 0 0 var(--acc)}
+.unit:focus-visible{outline:1px solid var(--acc); outline-offset:-1px}
+.unit .dot{width:6px; height:6px; background:var(--dim)}
+.unit .dot.run{background:var(--ok); box-shadow:0 0 7px var(--ok)}
+.unit .dot.start{background:var(--warn); box-shadow:0 0 7px var(--warn)}
+.unit .dot.fail{background:var(--bad); box-shadow:0 0 7px var(--bad)}
+.unit .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--txt)}
+.unit .ct,.unit .pt{text-align:right; color:var(--dim); font-size:9px}
+.detail dl{margin:0; display:grid; grid-template-columns:66px minmax(0,1fr); gap:2px 8px; font-size:10px}
+.detail dt{color:var(--dim); letter-spacing:.1em}
+.detail dd{margin:0; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.detail .why{grid-column:1/-1; color:var(--warn); font-size:10px; margin-top:4px}
+
+/* ---------------- konsole ---------------- */
+.events{display:grid; gap:2px; align-content:start; overflow:hidden}
+.ev{display:grid; grid-template-columns:56px 44px minmax(0,1fr); gap:8px; font-size:10px; color:var(--mut)}
+.ev time{color:var(--dim)}
+.ev .lv{letter-spacing:.1em}
+.ev.ok .lv{color:var(--ok)} .ev.warn .lv{color:var(--warn)} .ev.bad .lv{color:var(--bad)} .ev.info .lv{color:var(--acc)}
+.ev .msg{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.alerts{display:grid; gap:4px; align-content:start; overflow:hidden}
+.alert{display:grid; grid-template-columns:8px minmax(0,1fr); gap:7px; align-items:start; font-size:10px}
+.alert .dot{width:6px; height:6px; margin-top:4px; background:var(--warn)}
+.alert.bad .dot{background:var(--bad)} .alert.ok .dot{background:var(--ok)}
+.alert .tx b{color:var(--txt); font-weight:600; display:block; letter-spacing:.06em}
+.alert .tx span{color:var(--mut); font-size:9px; letter-spacing:.06em}
+.nominal{display:flex; align-items:center; gap:8px; color:var(--ok); font-size:10px; letter-spacing:.16em}
+
+/* ---------------- dolna belka ---------------- */
+.bottom{
+  display:flex; align-items:center; gap:14px; padding:0 10px; font-size:9px;
+  letter-spacing:.14em; color:var(--dim); border:1px solid var(--line); background:var(--panel);
+}
+.bottom .sp{flex:1}
+.bottom b{color:var(--mut); font-weight:600}
+@media (max-height:1000px){ .sys .en24{display:none} }
+@media (max-width:1280px){
+  .wall{grid-template-columns:232px minmax(0,1fr) 300px}
+  .strip{grid-template-columns:minmax(0,1fr) 280px}
+}
+@media (max-width:1080px){
+  body{grid-template-rows:52px auto 200px 24px; overflow:auto; height:auto}
+  .wall{grid-template-columns:1fr 1fr}
+  .col-center{grid-column:1/-1; grid-row:1}
+  .col-left,.col-right{grid-row:2}
+  .mapwrap{min-height:320px}
+}
+@media (max-width:760px){
+  .wall,.strip,.duo{grid-template-columns:1fr}
+  .col-left,.col-center,.col-right,.strip,.duo{grid-column:1}
+  .mapwrap{min-height:260px}
+  .topbar{grid-template-columns:1fr auto; row-gap:4px}
+  .chips{order:3; grid-column:1/-1; justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="mk" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".55"/>
+      <circle cx="12" cy="12" r="4.4" fill="none" stroke="currentColor" stroke-width="1.1"/>
+      <path d="M12 2.4v4M12 17.6v4M2.4 12h4M17.6 12h4" stroke="currentColor" stroke-width="1.1"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+    </svg>
+    <div class="tx"><b>CENTRUM MISJI</b><i>TACTICAL OPERATIONS</i></div>
+  </div>
+
+  <div class="chips" role="tablist" aria-label="Kanal">
+    <button class="chip" role="tab" data-ch="all" aria-selected="true">ALL UNITS</button>
+    <button class="chip" role="tab" data-ch="run" aria-selected="false">ACTIVE</button>
+    <button class="chip" role="tab" data-ch="rdy" aria-selected="false">READY</button>
+  </div>
+
+  <div class="meta">
+    <span class="led" id="led" title="link"></span>
+    <span id="mode" style="font-size:9px;letter-spacing:.18em;color:var(--mut)">LIVE</span>
+    <span class="clock num" id="clock">--:--:--<small>LOCAL / UTC</small></span>
+    <span class="op">OPERATOR<br>WOJTEK</span>
+  </div>
+</header>
+
+<main class="wall">
+  <aside class="col col-left" aria-label="Karty GPU">
+    <div id="cores" style="display:contents"></div>
+    <section class="panel sys">
+      <div class="ph"><b>SYSTEM</b><i>HOST / PAMIEC / SIEc</i><span class="sp"></span><span class="tag" id="sysTag">--</span></div>
+      <div class="rows" id="sysRows"></div>
+    </section>
+  </aside>
+
+  <section class="col col-center">
+    <section class="panel map">
+      <div class="ph"><b>TACTICAL MAP</b><i>SECTOR 03 / NODE LINK</i><span class="sp"></span><span class="tag" id="mapTag">0 RUNNING</span></div>
+      <div class="mapwrap" id="mapwrap">
+        <svg id="mapSvg" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <div class="readout tl" id="roTL">LAT 52.2297 N / LON 21.0122 E</div>
+        <div class="readout tr" id="roTR">GRID 34.0 / LINK 250 ms</div>
+        <div class="readout bl" id="roBL">SYS NOMINAL</div>
+        <div class="readout br" id="roBR">HOST --</div>
+      </div>
+    </section>
+
+    <div class="duo">
+      <section class="panel">
+        <div class="ph"><b>LOAD HISTORY</b><i>60 CYKLI / GPU</i><span class="sp"></span><span class="tag" id="histTag">0%</span></div>
+        <div class="hist" id="hist"></div>
+      </section>
+      <section class="panel">
+        <div class="ph"><b>POWER</b><i>PSU / GNIAZDKO</i><span class="sp"></span><span class="tag" id="pwrTag">--</span></div>
+        <div class="powerbig"><b id="pwrNow">--</b><span>W PSU</span><span class="sp"></span><span class="tag" id="pwrWall">-- W GNIAZDKO</span></div>
+        <div class="spark" id="spark"></div>
+        <div class="pgrid" id="pwrRows"></div>
+      </section>
+    </div>
+  </section>
+
+  <aside class="col col-right">
+    <section class="panel roster">
+      <div class="ph"><b>ROSTER</b><i>UNITS IN REGISTRY</i><span class="sp"></span><span class="tag" id="rosTag">0 / 0</span></div>
+      <div class="list"><div class="units" id="units"></div></div>
+      <div class="rosft" id="rosFoot"></div>
+    </section>
+    <section class="panel detail">
+      <div class="ph"><b>UNIT DETAIL</b><i id="detTag">WYBIERZ JEDNOSTKE</i></div>
+      <dl id="det"></dl>
+    </section>
+  </aside>
+</main>
+
+<footer class="strip">
+  <section class="panel">
+    <div class="ph"><b>EVENT STREAM</b><i>DELTA ZE STANU</i><span class="sp"></span><span class="tag" id="evTag">0</span></div>
+    <div class="events" id="events"></div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b>READY QUEUE</b><i>MOZE WYSTARTOWAC</i><span class="sp"></span><span class="tag" id="rdyTag">0</span></div>
+    <div class="ready" id="ready"></div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b>ALERTS</b><i>PROG VRAM / TEMP / MOC</i></div>
+    <div class="alerts" id="alerts"></div>
+  </section>
+</footer>
+
+<div class="bottom">
+  <span>HOST <b id="bHost">--</b></span>
+  <span>LINK <b id="bLink">--</b></span>
+  <span>UPTIME <b id="bUp">--</b></span>
+  <span class="sp"></span>
+  <span><b>1</b> ALL / <b>2</b> ACTIVE / <b>3</b> READY</span>
+  <span><b>D</b> DEMO</span>
+  <span>SYS REV <b>2026.10.26</b></span>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   DANE: WebSocket /ws (Centrum Misji, 250 ms). Gdy link padnie
+   albo strona jest otwarta bez serwera - tryb DEMO (jawnie
+   oznaczony), zeby sciana nigdy nie byla pusta atrapa.
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const qp = new URLSearchParams(location.search);
+const API = qp.get("api") || (location.protocol.startsWith("http") ? location.host : "127.0.0.1:8770");
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+const S = {
+  live: false, demo: qp.get("demo") === "1", snap: null, prev: null,
+  hist: [],          // [{gpu:idx, util}]
+  maxHist: 60,
+  events: [], evSeq: 0,
+  sel: null, filter: "all",
+  boot: Date.now(), lastMsg: 0, fps: 4,
+};
+
+/* ---------- format ---------- */
+const f1 = (n) => (Number(n) || 0).toFixed(1);
+const fi = (n) => String(Math.round(Number(n) || 0));
+const gb = (mb) => (Number(mb) / 1024).toFixed(1);
+const kk = (t) => (t >= 1024 ? Math.round(t / 1024) + "K" : String(t || 0));
+const pct = (a, b) => (b > 0 ? (100 * a) / b : 0);
+const hhmmss = (d) => d.toTimeString().slice(0, 8);
+const cls = (v, w, b) => (v >= b ? "bad" : v >= w ? "warn" : "");
+
+/* ---------- ewenty ---------- */
+function pushEv(level, msg){
+  const t = new Date();
+  S.events.unshift({ t: hhmmss(t), level, msg, id: ++S.evSeq });
+  if (S.events.length > 60) S.events.length = 60;
+  renderEvents();
+}
+function renderEvents(){
+  const box = $("events");
+  box.innerHTML = S.events.slice(0, 8).map(e =>
+    `<div class="ev ${e.level}"><time>${e.t}</time><span class="lv">${e.level.toUpperCase()}</span><span class="msg">${esc(e.msg)}</span></div>`
+  ).join("");
+  $("evTag").textContent = String(S.events.length);
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+/* ---------- roznice miedzy snapshotami ---------- */
+function diff(prev, next){
+  if (!prev) return;
+  for (const m of next.models || []){
+    const p = (prev.models || []).find(x => x.id === m.id);
+    if (!p) continue;
+    if (p.status !== m.status){
+      const lvl = m.status === "running" ? "ok" : m.status === "failed" ? "bad" : m.status === "starting" ? "warn" : "info";
+      pushEv(lvl, `${m.id}: ${p.status} -> ${m.status}`);
+    }
+  }
+  (next.gpus || []).forEach((g, i) => {
+    const p = (prev.gpus || [])[i]; if (!p) return;
+    const d = Math.abs((g.vram_used_mb || 0) - (p.vram_used_mb || 0));
+    if (d > 900) pushEv("info", `GPU${g.index} VRAM ${gb(p.vram_used_mb)} -> ${gb(g.vram_used_mb)} GB`);
+    if ((p.temp_c || 0) < 80 && (g.temp_c || 0) >= 80) pushEv("warn", `GPU${g.index} temperatura ${fi(g.temp_c)} C`);
+    if ((p.util_gpu || 0) < 20 && (g.util_gpu || 0) >= 50) pushEv("info", `GPU${g.index} obciazenie ${fi(g.util_gpu)}%`);
+  });
+}
+
+/* ---------- GPU / rdzenie ---------- */
+function renderCores(){
+  const gpus = (S.snap?.gpus || []);
+  const host = $("cores");
+  if (!host.children.length){
+    host.innerHTML = gpus.map((g, i) => `
+      <section class="panel core" data-gpu="${i}">
+        <div class="hd"><b>CORE ${String(i).padStart(2,"0")}</b><span class="nm">${esc(g.name || "")}</span><span class="sp"></span><span class="v num" data-f="temp0">--</span></div>
+        <div class="body">
+          <div class="gauge">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(111,230,255,.12)" stroke-width="4"/>
+              <circle class="arc" cx="32" cy="32" r="27" fill="none" stroke="#6fe6ff" stroke-width="4"
+                      stroke-dasharray="169.6" stroke-dashoffset="169.6" stroke-linecap="butt"/>
+            </svg>
+            <div class="pc"><b class="num" data-f="util">0</b><i>UTIL</i></div>
+          </div>
+          <div class="rows">
+            <div class="row"><span class="k">VRAM</span><span class="bar" data-f="vrambar"><i></i></span><span class="v num" data-f="vram">--</span></div>
+            <div class="row"><span class="k">TMP</span><span class="bar ${cls(g.temp_c,72,82)}" data-f="tmpbar"><i></i></span><span class="v num" data-f="tmp">--</span></div>
+            <div class="row"><span class="k">PWR</span><span class="bar" data-f="pwrbar"><i></i></span><span class="v num" data-f="pwr">--</span></div>
+            <div class="row"><span class="k">CLK</span><span class="mut num" data-f="clk" style="text-align:right;font-size:9px">--</span><span class="v num" data-f="limit"></span></div>
+          </div>
+        </div>
+        <div class="procs" data-f="procs"></div>
+        <div class="minispark" data-f="spark"></div>
+      </section>`).join("");
+  }
+  gpus.forEach((g, i) => {
+    const el = host.querySelector(`[data-gpu="${i}"]`); if (!el) return;
+    const vu = pct(g.vram_used_mb, g.vram_total_mb);
+    const pu = pct(g.power_w, g.power_limit_w);
+    el.querySelector('[data-f="util"]').textContent = fi(g.util_gpu);
+    el.querySelector('[data-f="temp0"]').textContent = `${fi(g.temp_c)}C`;
+    el.querySelector('[data-f="clk"]').textContent = `${fi(g.sm_clock_mhz)} / ${fi(g.mem_clock_mhz)} MHz`;
+    el.querySelector('[data-f="limit"]').textContent = g.nvlink ? "NVLink" : "";
+    el.querySelector('[data-f="vram"]').textContent = `${gb(g.vram_used_mb)}G`;
+    el.querySelector('[data-f="vrambar"] i').style.width = vu.toFixed(1) + "%";
+    el.querySelector('[data-f="tmp"]').textContent = `${fi(g.temp_c)}C`;
+    el.querySelector('[data-f="tmpbar"] i').style.width = Math.min(100, pct(g.temp_c, 95)).toFixed(1) + "%";
+    el.querySelector('[data-f="tmpbar"]').className = "bar " + cls(g.temp_c, 72, 82);
+    el.querySelector('[data-f="pwr"]').textContent = `${fi(g.power_w)}W`;
+    el.querySelector('[data-f="pwrbar"] i').style.width = Math.min(100, pu).toFixed(1) + "%";
+    const arc = el.querySelector(".arc"), C = 2 * Math.PI * 27;
+    arc.setAttribute("stroke-dashoffset", String(C * (1 - Math.min(100, g.util_gpu) / 100)));
+    const pr = (g.processes || []).filter(p => !p.system).slice(0, 4).map(p =>
+      `<span class="proc"><b>${esc(p.model || p.name || "?")}</b> ${gb(p.vram_mb)}G</span>`).join("");
+    const hist = S.hist.filter(h => h.gpu === i).slice(-S.maxHist);
+    const pad = S.maxHist - hist.length;
+    el.querySelector('[data-f="spark"]').innerHTML =
+      hist.map(h => `<i style="height:${Math.max(1, Math.round(h.util / 100 * 15))}px;opacity:${(h.util >= 75 ? 1 : h.util >= 45 ? .8 : h.util >= 15 ? .55 : .3)}"></i>`).join("") +
+      `<i class="z" style="height:1px"></i>`.repeat(Math.max(0, pad));
+    el.querySelector('[data-f="procs"]').innerHTML = pr || `<span class="proc dim">IDLE</span>`;
+  });
+}
+
+/* ---------- system hosta ---------- */
+function renderSys(){
+  const c = S.snap?.cpu || {}, r = S.snap?.ram || {}, n = S.snap?.net || {}, e = S.snap?.energia || {};
+  const nv = (S.snap?.nvme || []).reduce((a, x) => Math.max(a, x.temp_c || 0), 0);
+  const disks = (S.snap?.disks || []).filter(d => ["/mnt/H", "/mnt/G", "/"].includes(d.path));
+  const rows = [
+    ["CPU", c.percent, `${fi(c.percent)}%  ${fi(c.temp_package_c)}C  ${fi(c.cores)}w`],
+    ["LOAD", Math.min(100, pct(c.load1, c.cores || 24) * 100), `${f1(c.load1)} z ${fi(c.cores)}`],
+    ["RAM", r.percent, `${f1(r.used_gb)}/${f1(r.total_gb)}G ${fi(r.percent)}%`],
+    ["NET", Math.min(100, (n.rx_mb_s || 0) * 4), `${f1(n.rx_mb_s)}RX ${f1(n.tx_mb_s)}TX M/s`],
+    ["NVMe", Math.min(100, pct(nv, 80) * 100), `max ${f1(nv)}C`],
+  ];
+  const host = rows.map(([k, p, v]) => `
+    <div class="row"><span class="k">${k}</span><span class="bar ${cls(p, 80, 92)}"><i style="width:${Math.max(1, Math.min(100, p || 0)).toFixed(0)}%"></i></span><span class="v num">${esc(v)}</span></div>`).join("");
+  const dsk = disks.map(d => `
+    <div class="row"><span class="k">${esc(d.path === "/" ? "ROOT" : d.path.replace("/mnt/", ""))}</span><span class="bar ${cls(d.percent, 85, 95)}"><i style="width:${Math.min(100, d.percent || 0).toFixed(0)}%"></i></span><span class="v num">${fi(d.percent)}% ${fi(d.free_gb)}G</span></div>`).join("");
+  const godz = (e.godziny || []).slice(-24);
+  const mx = Math.max(1, ...godz.map(h => h.wh || 0));
+  const bars = godz.map(h => `<i style="height:${Math.max(1, Math.round((h.wh || 0) / mx * 26))}px"></i>`).join("");
+  $("sysRows").innerHTML = host
+    + `<div class="sec">DYSKI</div>` + dsk
+    + (bars ? `<div class="en24"><div class="sec">ENERGIA 24H / ${f1(e.dzis_kwh || 0)} kWh DZIS</div><div class="kwh">${bars}</div></div>` : "");
+  $("sysTag").textContent = `${fi(e.teraz_w_gniazdko || e.teraz_w || 0)} W`;
+}
+
+/* ---------- kolejka gotowych ---------- */
+function renderReady(){
+  const all = (S.snap?.models || []).filter(m => m.status !== "running" && m.status !== "starting");
+  const rdy = all.filter(m => m.can_start);
+  $("rdyTag").textContent = String(rdy.length);
+  $("ready").innerHTML = rdy.slice(0, 6).map(m => `
+    <div class="rdy">
+      <span class="nm">${esc(m.id)}</span>
+      <span class="ct num">${kk(m.ctx)}</span>
+      <span class="why">${esc(m.plan_reason || (m.plan_placement && m.plan_placement.gpus ? "GPU " + m.plan_placement.gpus.map(g => g).join("+") : "gotowy"))}</span>
+    </div>`).join("") || `<div class="rdy"><span class="nm dim">brak jednostek gotowych do startu</span></div>`;
+}
+
+/* ---------- mapa ---------- */
+const MAP = { w: 1000, h: 620 };
+function gpuPos(i, n){
+  if (n <= 1) return [500, 330];
+  if (n === 2) return i === 0 ? [360, 300] : [640, 300];
+  return [[280, 330], [500, 470], [720, 330]][i] || [500, 330];
+}
+function renderMap(){
+  const svg = $("mapSvg");
+  const gpus = S.snap?.gpus || [];
+  const models = S.snap?.models || [];
+  const running = models.filter(m => m.status === "running" || m.status === "starting");
+  const parts = [];
+
+  // siatka punktowa
+  parts.push(`<defs>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="1.4" cy="1.4" r="1" fill="rgba(111,230,255,.16)"/>
+    </pattern>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6fe6ff" stop-opacity=".22"/>
+      <stop offset="60%" stop-color="#6fe6ff" stop-opacity=".05"/>
+      <stop offset="100%" stop-color="#6fe6ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6fe6ff" stop-opacity=".15"/>
+      <stop offset="55%" stop-color="#6fe6ff" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#6fe6ff" stop-opacity=".15"/>
+    </linearGradient>
+  </defs>`);
+  parts.push(`<rect width="100%" height="100%" fill="url(#dots)"/>`);
+  parts.push(`<ellipse cx="500" cy="330" rx="430" ry="272" fill="url(#halo)" opacity=".5"/>`);
+
+  // przemiatanie radaru (SVG, obraca sie wokol 500/330)
+  parts.push(`<defs><linearGradient id="swg" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#6fe6ff" stop-opacity=".20"/>
+      <stop offset="100%" stop-color="#6fe6ff" stop-opacity="0"/>
+    </linearGradient></defs>
+    <g class="sweep-g"><path d="M500 330 L500 62 A268 268 0 0 1 690 121 Z" fill="url(#swg)"/>
+      <path d="M500 330 L500 62" stroke="rgba(111,230,255,.55)" stroke-width="1.2"/></g>`);
+
+  // etykiety sektorow
+  [["A", 500, 92], ["B", 262, 300], ["C", 738, 300]].forEach(([t, x, y]) => {
+    parts.push(`<text x="${x}" y="${y}" text-anchor="middle" fill="rgba(111,230,255,.30)" font-size="10" font-family="monospace" letter-spacing="4">SECTOR ${t}</text>`);
+  });
+
+  // pierscienie + osie
+  [110, 190, 270].forEach((r, k) => {
+    parts.push(`<circle cx="500" cy="330" r="${r}" fill="none" stroke="rgba(111,230,255,${0.16 - k * 0.035})" stroke-width="1"/>`);
+  });
+  parts.push(`<path d="M70 330h860M500 40v580" stroke="rgba(111,230,255,.14)" stroke-width="1" stroke-dasharray="2 8"/>`);
+  // ticki na obwodzie
+  for (let a = 0; a < 360; a += 15){
+    const rad = a * Math.PI / 180, r1 = 270, r2 = a % 45 === 0 ? 262 : 266;
+    parts.push(`<line x1="${500 + Math.cos(rad) * r1}" y1="${330 + Math.sin(rad) * r1}" x2="${500 + Math.cos(rad) * r2}" y2="${330 + Math.sin(rad) * r2}" stroke="rgba(111,230,255,.22)" stroke-width="1"/>`);
+  }
+  // kompas + zasiegi
+  [["N", 500, 48], ["E", 782, 334], ["S", 500, 618], ["W", 218, 334]].forEach(([t, x, y]) => {
+    parts.push(`<text x="${x}" y="${y}" text-anchor="middle" fill="rgba(111,230,255,.5)" font-size="11" font-family="monospace" letter-spacing="3">${t}</text>`);
+  });
+  [[110, "R110"], [190, "R190"], [270, "R270"]].forEach(([r, t]) => {
+    parts.push(`<text x="${500 + 6}" y="${330 - r - 4}" fill="rgba(111,230,255,.26)" font-size="8" font-family="monospace">${t}</text>`);
+  });
+
+  // topologia: centrum dyspozytora -> kazdy GPU (linia istniejaca, nie dane)
+  gpus.forEach((g, i) => {
+    const [x, y] = gpuPos(i, gpus.length);
+    parts.push(`<path d="M500 330 L${x} ${y}" stroke="rgba(111,230,255,.13)" stroke-width="1" stroke-dasharray="1 7"/>`);
+    const ang = Math.atan2(y - 330, x - 500);
+    const ax = 500 + Math.cos(ang) * 58, ay = 330 + Math.sin(ang) * 58;
+    parts.push(`<path d="M${ax} ${ay} l${Math.cos(ang + 2.6) * 9} ${Math.sin(ang + 2.6) * 9} M${ax} ${ay} l${Math.cos(ang - 2.6) * 9} ${Math.sin(ang - 2.6) * 9}" stroke="rgba(111,230,255,.22)" stroke-width="1"/>`);
+  });
+  parts.push(`<circle cx="500" cy="330" r="7" fill="none" stroke="rgba(111,230,255,.35)"/>
+    <circle cx="500" cy="330" r="2.2" fill="#6fe6ff"/>
+    <text x="500" y="356" text-anchor="middle" fill="rgba(111,230,255,.45)" font-size="8.5" font-family="monospace" letter-spacing="2">DISPATCHER</text>`);
+
+  // wezly GPU
+  gpus.forEach((g, i) => {
+    const [x, y] = gpuPos(i, gpus.length);
+    const busy = g.util_gpu > 3;
+    const col = g.temp_c >= 82 ? "#ff5454" : g.temp_c >= 72 ? "#ffb545" : "#6fe6ff";
+    parts.push(`<g>
+      <circle cx="${x}" cy="${y}" r="30" fill="rgba(3,12,18,.75)" stroke="${col}" stroke-opacity="${busy ? .95 : .4}" stroke-width="1.2"/>
+      <circle cx="${x}" cy="${y}" r="30" fill="none" stroke="${col}" stroke-width="1.2" opacity="${busy ? .5 : .15}">
+        ${busy ? `<animate attributeName="r" values="30;38;30" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0;.5" dur="2.4s" repeatCount="indefinite"/>` : ""}
+      </circle>
+      <text x="${x}" y="${y - 8}" text-anchor="middle" fill="#d9f2fa" font-size="13" font-family="monospace">GPU${g.index}</text>
+      <text x="${x}" y="${y + 6}" text-anchor="middle" fill="#8fb3c2" font-size="10" font-family="monospace">${fi(g.util_gpu)}% ${fi(g.temp_c)}C</text>
+      <text x="${x}" y="${y + 19}" text-anchor="middle" fill="#4d7484" font-size="8.5" font-family="monospace">${gb(g.vram_used_mb)}G</text>
+    </g>`);
+  });
+
+  // luki model -> GPU
+  const placed = [];
+  running.slice(0, 4).forEach((m, i) => {
+    const gi = (m.running_placement && m.running_placement.gpus && m.running_placement.gpus[0]) || 0;
+    const [gx, gy] = gpuPos(gi, gpus.length);
+    const ang = -Math.PI / 2 + (i - (Math.min(running.length, 4) - 1) / 2) * 0.55;
+    const r = 168;
+    const mx = 500 + Math.cos(ang) * r, my = 330 + Math.sin(ang) * r * .72;
+    const dy = (i % 2 === 0) ? -18 : 26;
+    const lbl = m.id.length > 17 ? m.id.slice(0, 16) + ".." : m.id;
+    parts.push(`<path d="M${mx} ${my} Q ${(mx + gx) / 2 + 40} ${(my + gy) / 2 - 60} ${gx} ${gy}"
+      fill="none" stroke="url(#arc)" stroke-width="1.3" stroke-dasharray="5 6">
+      ${"<animate attributeName='stroke-dashoffset' values='0;-44' dur='1.6s' repeatCount='indefinite'/>"}
+    </path>
+    <circle cx="${mx}" cy="${my}" r="5" fill="${m.status === "starting" ? "#ffb545" : "#6fe6ff"}"/>
+    <circle cx="${mx}" cy="${my}" r="11" fill="none" stroke="${m.status === "starting" ? "#ffb545" : "#6fe6ff"}" stroke-opacity=".45">
+      <animate attributeName="r" values="6;16;6" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-opacity" values=".55;0;.55" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <text x="${mx}" y="${my + dy}" text-anchor="middle" fill="#d9f2fa" font-size="11" font-family="monospace">${esc(lbl)}</text>
+    <text x="${mx}" y="${my + dy + (dy > 0 ? 12 : -12)}" text-anchor="middle" fill="#5d8698" font-size="9" font-family="monospace">:${m.port} / ${kk(m.ctx)}K</text>`);
+    placed.push([mx, my]);
+  });
+  if (!running.length){
+    [0, 1, 2].forEach((k) => {
+      const ang = -Math.PI / 2 + (k - 1) * 0.62, r = 168;
+      const x = 500 + Math.cos(ang) * r, y = 330 + Math.sin(ang) * r * 0.72;
+      parts.push(`<g opacity=".5">
+        <circle cx="${x}" cy="${y}" r="10" fill="none" stroke="rgba(111,230,255,.35)" stroke-dasharray="2 4"/>
+        <text x="${x}" y="${y + 26}" text-anchor="middle" fill="#33586a" font-size="9" font-family="monospace">SLOT FREE</text></g>`);
+    });
+    parts.push(`<text x="500" y="304" text-anchor="middle" fill="#3d6675" font-size="10" font-family="monospace" letter-spacing="3">NO ACTIVE UNIT</text>`);
+  }
+
+  svg.innerHTML = parts.join("");
+  $("mapTag").textContent = `${running.length} RUNNING`;
+  $("roBL").textContent = running.length ? `TRACKING ${running.map(m => m.id).join(" + ").slice(0, 46)}` : "SYS NOMINAL / STANDBY";
+}
+
+/* ---------- historia obciazenia ---------- */
+function renderHist(){
+  const gpus = S.snap?.gpus || [];
+  const box = $("hist");
+  if (!box.children.length){
+    box.innerHTML = gpus.map((g, i) => `
+      <div class="line" data-h="${i}">
+        <span class="dim">GPU${i}</span>
+        <span class="segs"></span>
+        <span class="v num right" data-f="now"></span>
+      </div>`).join("");
+  }
+  gpus.forEach((g, i) => {
+    const row = box.querySelector(`[data-h="${i}"]`); if (!row) return;
+    const hist = S.hist.filter(h => h.gpu === i).slice(-S.maxHist);
+    const pad = S.maxHist - hist.length;
+    row.querySelector(".segs").innerHTML =
+      hist.map(h => {
+        const q = h.util >= 75 ? "q4" : h.util >= 45 ? "q3" : h.util >= 15 ? "q2" : "q1";
+        return `<i class="${q}" style="height:${Math.max(1, Math.round(h.util / 100 * 14))}px"></i>`;
+      }).join("") +
+      `<i class="q1" style="height:1px;opacity:.25"></i>`.repeat(Math.max(0, pad));
+    row.querySelector('[data-f="now"]').textContent = fi(g.util_gpu) + "%";
+  });
+  const avg = gpus.length ? gpus.reduce((a, g) => a + g.util_gpu, 0) / gpus.length : 0;
+  $("histTag").textContent = fi(avg) + "%";
+}
+
+/* ---------- moc ---------- */
+function renderPower(){
+  const e = S.snap?.energia || {};
+  const gpus = S.snap?.gpus || [];
+  const psu = S.snap?.psu?.power_w || gpus.reduce((a, g) => a + (g.power_w || 0), 0);
+  $("pwrNow").textContent = fi(psu);
+  $("pwrTag").textContent = e.teraz_w ? fi(e.teraz_w) + " W" : "--";
+  const godz = (e.godziny || []).slice(-24);
+  const mx = Math.max(1, ...godz.map(h => h.wh || 0));
+  $("spark").innerHTML = godz.length
+    ? godz.map(h => `<i style="height:${Math.max(2, Math.round((h.wh || 0) / mx * 32))}px"></i>`).join("")
+    : `<i style="height:2px"></i>`.repeat(24);
+  $("pwrWall").textContent = (e.teraz_w_gniazdko ? fi(e.teraz_w_gniazdko) + " W GNIAZDKO" : "--");
+  const rows = [
+    ["DZIS", e.dzis_kwh != null ? f1(e.dzis_kwh) + " kWh" : "--"],
+    ["MIES", e.miesiac_kwh != null ? f1(e.miesiac_kwh) + " kWh" : "--"],
+    ["SRED", e.miesiac_sred_w ? fi(e.miesiac_sred_w) + " W" : "--"],
+    ["GODZ", e.miesiac_godzin_pracy != null ? f1(e.miesiac_godzin_pracy) + " h" : "--"],
+  ];
+  $("pwrRows").innerHTML = rows.map(([k, v]) =>
+    `<div><span class="k">${k}</span><span class="v num">${v}</span></div>`).join("");
+}
+
+/* ---------- roster ---------- */
+function unitStatus(m){
+  if (m.status === "running") return "run";
+  if (m.status === "starting") return "start";
+  if (m.status === "failed") return "fail";
+  return "";
+}
+function renderRoster(){
+  const all = (S.snap?.models || []);
+  const list = all.filter(m => S.filter === "all" ? true : S.filter === "run" ? (m.status === "running" || m.status === "starting") : m.can_start);
+  $("rosTag").textContent = `${list.filter(m => m.status === "running").length} / ${all.length}`;
+  const run = all.filter(m => m.status === "running" || m.status === "starting").length;
+  const rdy = all.filter(m => m.can_start && m.status === "stopped").length;
+  const blk = all.length - run - rdy;
+  $("rosFoot").innerHTML = `<div>AKTYWNE<b>${run}</b></div><div>GOTOWE<b>${rdy}</b></div><div>ZABLOKOWANE<b>${Math.max(0, blk)}</b></div>`;
+  const box = $("units");
+  if (S.sel && !all.find(m => m.id === S.sel)) S.sel = null;
+  if (!S.sel && all.length) S.sel = all[0].id;
+  box.innerHTML = list.map(m => `
+    <div class="unit" role="option" tabindex="0" data-id="${esc(m.id)}" aria-selected="${m.id === S.sel}">
+      <span class="dot ${unitStatus(m)}"></span>
+      <span class="nm" title="${esc(m.name)}">${esc(m.id)}</span>
+      <span class="ct num">${kk(m.ctx)}</span>
+      <span class="pt num">:${m.port}</span>
+    </div>`).join("");
+  renderDetail();
+}
+function renderDetail(){
+  const m = (S.snap?.models || []).find(x => x.id === S.sel);
+  const d = $("det");
+  if (!m){ d.innerHTML = `<dt>STATUS</dt><dd class="dim">brak wyboru</dd>`; $("detTag").textContent = "WYBIERZ JEDNOSTKE"; return; }
+  $("detTag").textContent = m.id.toUpperCase();
+  const pl = m.running_placement || m.plan_placement;
+  const gpus = pl && pl.gpus ? pl.gpus.map(g => "GPU" + g).join(" + ") : "nieprzypisany";
+  const rows = [
+    ["NAZWA", m.name],
+    ["STATUS", m.status],
+    ["PORT", ":" + m.port],
+    ["CTX", `${m.ctx} (${kk(m.ctx)})`],
+    ["START", m.can_start ? "mozliwy" : "zablokowany"],
+    ["VRAM", pl && pl.vram ? pl.vram.map(v => gb(v) + "G").join(" + ") : "--"],
+    ["GPU", gpus],
+    ["PIDS", (m.pids && m.pids.length) ? m.pids.join(", ") : "--"],
+    ["ADOPT", m.adopted ? "tak" : "nie"],
+  ];
+  d.innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd class="num" title="${esc(String(v))}">${esc(String(v))}</dd>`).join("")
+    + (m.plan_reason ? `<dd class="why">${esc(m.plan_reason)}</dd>` : "")
+    + (m.zatrzymaj && m.zatrzymaj.length ? `<dd class="why">zatrzyma: ${esc(m.zatrzymaj.join(", "))}</dd>` : "");
+}
+
+/* ---------- alerty ---------- */
+function renderAlerts(){
+  const out = [];
+  (S.snap?.gpus || []).forEach(g => {
+    const vu = pct(g.vram_used_mb, g.vram_total_mb);
+    if (vu >= 92) out.push(["bad", `GPU${g.index} VRAM ${fi(vu)}%`, `${gb(g.vram_used_mb)} / ${gb(g.vram_total_mb)} GB`]);
+    if (g.temp_c >= 82) out.push(["bad", `GPU${g.index} ${fi(g.temp_c)} C`, "prog 82 C, sprawdz chlodzenie"]);
+    else if (g.temp_c >= 74) out.push(["warn", `GPU${g.index} ${fi(g.temp_c)} C`, "prog ostrzegawczy 74 C"]);
+    if (pct(g.power_w, g.power_limit_w) >= 95) out.push(["warn", `GPU${g.index} limit mocy`, `${fi(g.power_w)} / ${fi(g.power_limit_w)} W`]);
+  });
+  const ram = S.snap?.ram || {};
+  if (ram.available_gb != null && ram.available_gb < 6) out.push(["warn", "RAM na wyczerpaniu", `${f1(ram.available_gb)} GB wolne`]);
+  (S.snap?.models || []).forEach(m => {
+    if (m.status === "failed") out.push(["bad", `${m.id} FAILED`, (m.log_tail && m.log_tail.slice(-1)[0]) || "zajrzyj w log"]);
+    if (m.status === "starting" && m.ladowanie && m.ladowanie.etap) out.push(["info", `${m.id} STARTING`, m.ladowanie.etap]);
+  });
+  if (!S.live) out.push(["warn", "LINK DO CENTRUM PADL", "dane z generatora DEMO"]);
+  const box = $("alerts");
+  if (!out.length){
+    box.innerHTML = `<div class="nominal"><span class="dot" style="width:6px;height:6px;background:currentColor;box-shadow:0 0 8px currentColor"></span>NOMINAL / BRAK ODSTEPSTW</div>`;
+    return;
+  }
+  box.innerHTML = out.slice(0, 5).map(([lvl, t, s]) =>
+    `<div class="alert ${lvl}"><span class="dot"></span><span class="tx"><b>${esc(t)}</b><span>${esc(s)}</span></span></div>`).join("");
+}
+
+/* ---------- belka / status ---------- */
+function renderShell(){
+  const d = new Date();
+  $("clock").innerHTML = `${hhmmss(d)}<small>LOCAL / UTC</small>`;
+  $("led").className = "led " + (S.live ? "" : "demo off");
+  $("mode").textContent = S.demo ? "DEMO" : (S.live ? "LIVE" : "RECONNECT");
+  $("bHost").textContent = S.snap?.net?.hostname || "--";
+  $("bLink").textContent = S.live ? "250 ms / WS" : "brak";
+  const up = Math.floor((Date.now() - S.boot) / 1000);
+  $("bUp").textContent = `${Math.floor(up / 60)}m ${String(up % 60).padStart(2, "0")}s`;
+  $("roTR").textContent = `GRID 34.0 / LINK ${S.live ? "250 ms" : "OFFLINE"}`;
+  $("roBR").textContent = `HOST ${(S.snap?.net?.hostname || "--").toUpperCase()}`;
+}
+
+/* ---------- petla renderu ---------- */
+let lastRender = 0;
+function render(){
+  renderCores(); renderSys(); renderMap(); renderHist(); renderPower();
+  renderRoster(); renderReady(); renderAlerts(); renderShell();
+}
+function tick(ts){
+  if (ts - lastRender > 1000 / S.fps){ lastRender = ts; render(); }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- przyjmowanie stanu ---------- */
+function apply(snap){
+  S.prev = S.snap; S.snap = snap; S.live = true; S.demo = false; S.lastMsg = Date.now();
+  diff(S.prev, snap);
+  (snap.gpus || []).forEach(g => S.hist.push({ gpu: g.index, util: g.util_gpu || 0 }));
+  if (S.hist.length > S.maxHist * 4) S.hist = S.hist.slice(-S.maxHist * 4);
+}
+
+/* ---------- DEMO (jawnie oznaczony generator) ---------- */
+let dt = 0;
+function demoTick(){
+  dt += 1;
+  const wave = (a, b, p) => a + (b - a) * (0.5 + 0.5 * Math.sin(dt / p));
+  const gpus = [0, 1, 2].map(i => {
+    const lim = i === 2 ? 70 : 300;
+    return {
+      index: i, name: i === 2 ? "NVIDIA T400 4GB" : "Tesla V100-SXM2-32GB",
+      vram_used_mb: (i === 2 ? 1150 : wave(4200, 26500, 23 + i)),
+      vram_total_mb: i === 2 ? 4096 : 32768,
+      temp_c: Math.round(i === 2 ? 52 : wave(44, 79, 19 + i)),
+      power_w: Math.round(wave(i === 2 ? 22 : 58, lim * 0.92, 17 + i)),
+      power_limit_w: lim, util_gpu: Math.round(Math.max(0, wave(1, 96, 11 + i))),
+      sm_clock_mhz: i === 2 ? 585 : Math.round(wave(1180, 1530, 7 + i)),
+      mem_clock_mhz: i === 2 ? 5001 : 877, nvlink: i !== 2,
+      processes: i === 2 ? [] : [{ pid: 4000 + i, name: "demo-serve", vram_mb: 12000, model: i === 0 ? "ornithmax2" : null, system: false }],
+    };
+  });
+  const models = [
+    ["ornithmax2", "ORNITH MAX TP2", 8033, 262144, "running", 0],
+    ["ninfer06", "NINFER T0.6 27B", 8033, 262144, "stopped", 0],
+    ["warp-ornith-100k", "WARP ORNITH 100K", 8075, 100352, "starting", 1],
+    ["strata-huihui", "STRATA HUIHUI 125B", 8033, 131072, "stopped", 0],
+    ["ninfer06-mozg", "MOZG 96K", 8033, 98304, "stopped", 1],
+  ].map(([id, name, port, ctx, status, gi]) => ({
+    id, name, port, ctx, status, enabled: true, can_start: status === "stopped",
+    running_placement: status === "running" ? { gpus: [gi], vram: [15161] } : null,
+    plan_placement: { gpus: [gi], vram: [14800] },
+    plan_reason: status === "stopped" ? "RAM: potrzeba 47 GB, wolne 11 GB" : "", pids: status === "running" ? [4000] : [],
+  }));
+  apply({
+    t: Date.now() / 1000, gpus, models,
+    psu: { power_w: gpus.reduce((a, g) => a + g.power_w, 0) },
+    ram: { available_gb: 48.6, percent: 22 },
+    net: { hostname: "DEMO-NODE" },
+    energia: { teraz_w: Math.round(wave(260, 900, 31)), teraz_w_gniazdko: Math.round(wave(380, 1100, 29)), dzis_kwh: 4.2, miesiac_kwh: 71.1, miesiac_sred_w: 415,
+      godziny: Array.from({ length: 24 }, (_, k) => ({ wh: 200 + 500 * Math.abs(Math.sin((dt + k) / 6)) })) },
+  });
+  S.live = false; S.demo = true;
+}
+
+/* ---------- link ---------- */
+function connect(){
+  if (qp.get("demo") === "1"){ startDemo(); return; }
+  let ws;
+  try { ws = new WebSocket(`ws://${API}/ws`); }
+  catch (e){ startDemo(); return; }
+  ws.onopen = () => { S.live = true; pushEv("info", `link zestawiony ${API}`); };
+  ws.onmessage = (ev) => { try { apply(JSON.parse(ev.data)); } catch (e){} };
+  ws.onclose = () => { S.live = false; pushEv("bad", "link zerwany, reconnect 5 s"); setTimeout(connect, 5000); };
+  ws.onerror = () => { S.live = false; };
+}
+function startDemo(){
+  if (S.demoTimer) return;
+  pushEv("warn", "brak serwera, generator DEMO");
+  S.demoTimer = setInterval(() => { if (!S.live) demoTick(); }, 1000);
+  demoTick();
+}
+
+/* ---------- interakcja ---------- */
+function setFilter(ch){
+  S.filter = ch;
+  document.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-selected", String(b.dataset.ch === ch)));
+  renderRoster();
+}
+document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => setFilter(b.dataset.ch)));
+$("units").addEventListener("click", (e) => {
+  const row = e.target.closest(".unit"); if (!row) return;
+  S.sel = row.dataset.id; renderRoster();
+});
+$("units").addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  e.preventDefault();
+  const rows = [...$("units").querySelectorAll(".unit")];
+  const i = rows.findIndex(r => r.dataset.id === S.sel);
+  const next = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))];
+  if (next){ S.sel = next.dataset.id; next.focus(); renderRoster(); }
+});
+window.addEventListener("keydown", (e) => {
+  if (e.target.matches("input,textarea")) return;
+  if (e.key === "1") setFilter("all");
+  else if (e.key === "2") setFilter("run");
+  else if (e.key === "3") setFilter("rdy");
+  else if (e.key.toLowerCase() === "d"){ S.demo ? location.reload() : startDemo(); }
+});
+
+/* ---------- start ---------- */
+pushEv("info", "console gotowa, lacze z " + API);
+connect();
+requestAnimationFrame(tick);
+setTimeout(() => { if (!S.live) startDemo(); }, 2500);
+</script>
+</body>
+</html>

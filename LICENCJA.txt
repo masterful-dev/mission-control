@@ -1,0 +1,14 @@
+MISSION CONTROL - WARUNKI KORZYSTANIA
+
+1. Program jest udostępniany w stanie, w jakim jest, bez jakiejkolwiek gwarancji.
+   Autor nie odpowiada za żadne szkody, utratę danych, uszkodzenie sprzętu ani inne
+   skutki instalacji i używania programu.
+2. Instalujesz i używasz programu wyłącznie na własną odpowiedzialność.
+3. Bez pisemnej zgody autora nie wolno modyfikować programu, wykorzystywać jego kodu
+   w całości ani we fragmentach, odtwarzać kodu z plików programu ani rozpowszechniać
+   wersji zmienionych.
+4. Dołączone składniki innych autorów pozostają na własnych licencjach. Ich lista
+   i pełne teksty licencji są w pliku THIRD-PARTY-NOTICES.txt.
+
+Autor: Masterful
+English version: LICENSE.txt

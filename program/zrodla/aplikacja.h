@@ -16,6 +16,7 @@ const char* L(const char* en, const char* pl);          // tekst w biezacym jezy
 struct Skorka { std::string name, accent, rim, eye, bg, panel, text, warn, bad, font; float contours = 1, fine = 1, points = .5f, glass = .5f, glow = 1, scan = .25f, density = .6f, opacity = .8f, radius = 6; };
 struct Opcje {
   std::string skorka = "ice", twarz = "holo";
+  bool warunki = false;                  // warunki korzystania zaakceptowane (pytanie przy pierwszym uruchomieniu)
   bool rings = false, react = true;      // rings: luki i pasy za twarza z oryginalu (domyslnie wylaczone)
   bool startup = false, tray = false, caption = true, karty = true, widmo = true, pelneNazwy = false, czujniki = true, przyciaganie = true, ekranZapisany = false;
   float ruch = 1; int ekranX = 0, ekranY = 0;
@@ -29,7 +30,7 @@ struct Prost { float x = 0, y = 0, w = 0, h = 0; };      // ulamki pola pod gorn
 enum { CH_L = 1, CH_P = 2, CH_G = 4, CH_D = 8, CH_RUCH = 16 };
 struct Chwyt { std::string id; int tryb = 0; bool aktywny = false; ImVec2 m0; ImRect r0; };
 struct Panel { std::string id, tytul; bool grow = false; float natH = 0, naglowekH = 0; ImRect r; bool widac = false; };
-enum class Dialog { Brak, Ustawienia, Zwolnij, Sprawnosc, Przelacz, Log, Model, Import, Raport, Potwierdz, Duzy, Wlasciwosci };
+enum class Dialog { Brak, Ustawienia, Zwolnij, Sprawnosc, Przelacz, Log, Model, Import, Raport, Potwierdz, Duzy, Wlasciwosci, Warunki };
 struct SilnikDef { std::string id, nazwa, znak; unsigned rgb; };
 
 struct Aplikacja {
