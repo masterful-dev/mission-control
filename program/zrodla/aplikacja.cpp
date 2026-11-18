@@ -141,5 +141,5 @@ void Aplikacja::ustawStartZSystemem(bool wl) { HKEY k; if (RegOpenKeyExW(HKEY_CU
 #else
 static std::filesystem::path plikStartu() { const char* c = getenv("XDG_CONFIG_HOME"); std::filesystem::path p = c && *c ? c : std::string(getenv("HOME") ? getenv("HOME") : ".") + "/.config"; return p / "autostart" / "centrum-misji-v2.desktop"; }
 bool Aplikacja::startZSystemem() { return std::filesystem::exists(plikStartu()); }
-void Aplikacja::ustawStartZSystemem(bool wl) { auto p = plikStartu(); std::error_code e; if (!wl) { std::filesystem::remove(p, e); return; } std::filesystem::create_directories(p.parent_path(), e); auto x = std::filesystem::read_symlink("/proc/self/exe", e); std::ofstream(p) << "[Desktop Entry]\nType=Application\nName=Centrum Misji V2\nExec=\"" << x.string() << "\"\nTerminal=false\n"; }
+void Aplikacja::ustawStartZSystemem(bool wl) { auto p = plikStartu(); std::error_code e; if (!wl) { std::filesystem::remove(p, e); return; } std::filesystem::create_directories(p.parent_path(), e); auto x = std::filesystem::read_symlink("/proc/self/exe", e); std::ofstream(p) << "[Desktop Entry]\nType=Application\nName=Mission Control\nExec=\"" << x.string() << "\"\nTerminal=false\n"; }
 #endif

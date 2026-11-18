@@ -109,7 +109,7 @@ void rysujMenu() {
     else if (e == "moc") { info(t("power")); kopiujWartosc(c); linia(); menuEnergii(c); }
     else if (e == "zrodlo") { info(L("Data source", "Źródło danych")); if (poz(L("Live data", "Prawdziwe dane"), A.prawdziwe, Api::polaczone() || A.wymusSim)) A.wymusSim = false; if (poz(t("data_sim"), !A.prawdziwe)) { A.wymusSim = true; A.prawdziwe = false; } if (poz(L("Copy address", "Kopiuj adres"))) A.kopiuj(Api::adres()); }
     else if (e == "widmo" || e == "nvlink" || e == "scena" || e == "twarz") { menuSceny(); menuProgramu(); }
-    else if (e == "gora" || e == "marka" || e == "przycisk" || e == "demo") { info(std::string(t("brand")) + " V2"); menuProgramu(); }
+    else if (e == "gora" || e == "marka" || e == "przycisk" || e == "demo") { info(t("brand")); menuProgramu(); }
     else if (!c.panel.empty()) {
       info(t(A.P.count(c.panel) ? A.P[c.panel].tytul : c.panel)); if (!c.wartosc.empty()) { kopiujWartosc(c); linia(); }
       if (c.panel == "llm" && m) { if (poz(t("stop"))) A.akcjaModelu("stop", m->id); if (poz(t("restart"))) A.akcjaModelu("restart", m->id); if (poz(t("log"))) A.akcjaModelu("log", m->id); if (poz(L("Properties…", "Właściwości…"))) A.akcjaModelu("props", m->id); linia(); }

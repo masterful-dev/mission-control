@@ -1,5 +1,5 @@
 // Zasoby programu na Windows: ikona pliku .exe i opis wersji.
-1 ICON "../../instalator/ikona/centrum-misji.ico"
+1 ICON "../../instalator/ikona/mission-control.ico"
 1 VERSIONINFO
 FILEVERSION 2,1,0,0
 PRODUCTVERSION 2,1,0,0
@@ -9,9 +9,9 @@ BEGIN
     BLOCK "040904B0"
     BEGIN
       VALUE "CompanyName", "Masterful"
-      VALUE "FileDescription", "Centrum Misji"
+      VALUE "FileDescription", "Mission Control"
       VALUE "FileVersion", "2.1.0"
-      VALUE "ProductName", "Centrum Misji"
+      VALUE "ProductName", "Mission Control"
       VALUE "ProductVersion", "2.1.0"
     END
   END
