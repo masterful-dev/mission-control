@@ -29,9 +29,33 @@ Mission Control is one program built from one codebase. It ships in two editions
 |---|---|---|---|
 | **Linux** | `.deb` | Debian, Ubuntu 24.04, Linux Mint 22 | ready |
 | **Linux** | `.run` | any x86_64 Linux, installs without administrator rights | ready |
-| **Windows** | installer `.exe` | Windows 10 and 11, installs without administrator rights | preview: built and packaged, not yet verified on a Windows machine |
+| **Windows** | `setup.exe` | Windows 10 and 11, installs without administrator rights | preview: built and packaged, not yet verified on a Windows machine |
 
 Downloads are published under **Releases**, one release per version, with the Linux and Windows packages side by side.
+
+## Install
+
+**Debian, Ubuntu, Linux Mint**
+
+    sudo apt install ./mission-control_2.1.1_amd64.deb
+
+Remove it with `sudo apt remove mission-control`.
+
+**Any x86_64 Linux, without administrator rights**
+
+    sh mission-control-2.1.1-linux-x86_64.run
+
+The program goes to `~/.local/opt/mission-control` and appears in the applications menu.
+Remove it with `~/.local/opt/mission-control/uninstall.sh`.
+
+**Windows 10 and 11**
+
+Run `MissionControl-2.1.1-setup.exe`. It installs for the current user and adds shortcuts to the Start menu and the desktop.
+Remove it from *Installed apps* in Windows settings.
+
+The `.run` and Windows installers ask you to accept the terms of use before they install anything; the program itself asks again on first start.
+Your data (model list, settings, energy history) stays in your user profile when the program is removed.
+Each release comes with `SHA256SUMS.txt`, so you can check a download with `sha256sum -c SHA256SUMS.txt`.
 
 ## Requirements
 
