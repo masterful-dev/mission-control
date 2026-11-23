@@ -1,7 +1,7 @@
-/* CENTRUM MISJI — frontend HUD (§7 + §11b/§11c/§11d + §13).
-   Nasłuchuje WebSocket /ws (pełny stan co 250 ms), tylko aktualizuje zmienione wartości DOM.
-   §13: panele = swobodne okna w PIKSELACH (web/okna.js, pointer events — NIE HTML5 DnD),
-   kategorie i modele przeciągalne (HTML5 drag&drop). Zero bibliotek, zero CDN. */
+/* CENTRUM MISJI — HUD frontend (§7 + §11b/§11c/§11d + §13).
+   Listens on WebSocket /ws (full state every 250 ms), only updates changed DOM values.
+   §13: panels = free windows in PIXELS (web/okna.js, pointer events — NOT HTML5 DnD),
+   categories and models draggable (HTML5 drag&drop). Zero libraries, zero CDN. */
 import {
   MIN_OKNO_W, PANELS as PANELE_LAYOUT,
   rozsun, przycin, naprawUklad, domyslneOkna, waskiUklad, wysokoscKontenera,
@@ -70,9 +70,9 @@ function el(tag, klasa, html) {
   if (html !== undefined) n.innerHTML = html;
   return n;
 }
-/* esc() — KAŻDA wartość spoza aplikacji (cmdline procesu, nazwa modelu, sciezka .desktop, etykieta hwmon)
-   trafia do innerHTML tylko przez esc(): inaczej obcy proces z `<img onerror=...>` w cmdline
-   wykonuje kod w UI Centrum z uprawnieniami Centrum (AUDYT: XSS w sierotach/importach/nazwach). */
+/* esc() — EVERY value from outside the app (process cmdline, model name, .desktop path, hwmon label)
+   goes into innerHTML only through esc(): otherwise a foreign process with `<img onerror=...>` in cmdline
+   executes code in the Centrum UI with Centrum's permissions (AUDIT: XSS in orphans/imports/names). */
 function esc(v) {
   return String(v === null || v === undefined ? "" : v)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -110,13 +110,13 @@ function potwierdz(text, onGo) {
 }
 $("confirmGo").onclick = () => potwierdzenie && potwierdzenie();
 
-/* ---------------- układ paneli (§13: swobodne okna w pikselach, web/okna.js) ---------------- */
+/* ---------------- panel layout (§13: free windows in pixels, web/okna.js) ---------------- */
 let uklad = { panels: PANELE_LAYOUT.slice(), cats: [] };
 let czekamLayout = false, czekamOrder = false, drag = null;
 
-/* §13: `okna` = geometria ZYWNA (przycieta do biezacej szerokosci, bez przeciec) — to rysujemy
-   i to przesuwa wskaźnik. `oknaZapisane` = ostania geometria zapisana/wczytana z serwera —
-   z niej odtwarzamy uklad po poszerzeniu okna (pozycje uzytkownika NIE sa nadpisywane przycinaniem). */
+/* §13: `okna` = LIVE geometry (clipped to current width, without intersections) — we draw this
+   and it moves with the pointer. `oknaZapisane` = the last geometry saved/loaded from the server —
+   the layout is restored from it after widening the window (user positions are NOT overwritten by clipping). */
 let okna = {}, oknaZapisane = {}, oknoAktywne = null;
 let serwerKlucz = "", poZapisie = 0;   // §13: starsza klatka /ws (sprzed naszego PUT) nie moze cofnac ulozenia
 const PAD = 12;                      // margines kontenera (CSS .grid padding)
@@ -143,7 +143,7 @@ function panelEl(id) {
   const uchwyt = el("div", "p-resize");
   sec.append(head, body, uchwyt);
   def.buduj(body, head);
-  /* §13: przenoszenie za cały nagłówek + uchwyt rozmiaru — pointer events (web/okna.js) */
+  /* §13: dragging by the whole header + resize handle — pointer events (web/okna.js) */
   podlaczPrzenoszenie(sec, OKNA_CTX);
   podlaczRozmiar(sec, OKNA_CTX);
   panelEls.set(id, sec);
@@ -165,7 +165,7 @@ function aktywnePanele() {
   return ids;
 }
 
-/* kontekst dla web/okna.js: oknaZYWE to jedyna źródłowa geometria rysowana na ekranie */
+/* context for web/okna.js: oknaZYWE is the only source geometry drawn on screen */
 const OKNA_CTX = {
   szerokosc: () => Math.max(szerokoscKontenera(), zasiegUkladu()),
   zablokowane: waskieOkno,                     // < 900 px: uklad pionowy — drag/rozmiar paneli zablokowany
@@ -178,14 +178,14 @@ const OKNA_CTX = {
   onEnd: (id, typ) => {
     oknoAktywne = null;
     const s = panelEls.get(id); if (s) s.classList.remove("moving");
-    if (waskieOkno()) { zastosujUklad(); return; }   // układ pionowy wąskiego okna — tylko widok, bez zapisu
-    okna = naprawUklad(rozsun(okna, id));            // bez nakładania: przecinające jadą w DÓŁ
+    if (waskieOkno()) { zastosujUklad(); return; }   // vertical layout of narrow window — view only, no save
+    okna = naprawUklad(rozsun(okna, id));            // no overlap: intersecting windows go DOWN
     for (const pid of Object.keys(okna)) narysujOkno(pid);
     ustawWysokoscKontenera();
     oknaZapisane = { ...okna };                       // to trafia na serwer (pozycje pikselowe 1:1)
     zapiszLayoutDebounce();
   },
-  onDomylny: (id) => {                                // dwuklik na uchwycie = rozmiar domyślny
+  onDomylny: (id) => {                                // double-click on the handle = default size
     if (waskieOkno()) return;
     const o = okna[id]; if (!o) return;
     const dom = domyslneOkna(szerokoscKontenera())[id] || { w: 400, h: 300 };
@@ -210,19 +210,19 @@ function narysujOkno(id) {
 function ustawWysokoscKontenera() {
   const grid = $("panels");
   if (waskieOkno()) { grid.style.height = ""; grid.style.minWidth = ""; return; }
-  grid.style.minWidth = (zasiegUkladu() + 2 * PAD) + "px";   // układ szerszy niż okno = poziome przewijanie
+  grid.style.minWidth = (zasiegUkladu() + 2 * PAD) + "px";   // layout wider than window = horizontal scrolling
   const h = wysokoscKontenera(okna) + 2 * PAD;
   grid.style.height = Math.max(h, window.innerHeight - 52) + "px";
 }
 
-/* wąskie okno (< 900 px): panele jeden pod drugim na pełną szerokość — ZAPISANE pozycje nietknięte */
+/* narrow window (< 900 px): panels one under another at full width — SAVED positions untouched */
 function zastosujUklad() {
   const S = szerokoscKontenera();
   if (waskieOkno()) {
     okna = waskiUklad(oknaZapisane, aktywnePanele(), Math.max(S, MIN_OKNO_W));
   } else {
-    // ZAPISANE pozycje 1:1 — bez przycinania do szerokości okna (węższe okno = poziomy pasek przewijania);
-    // dopasowanie do okna NIGDY nie może trafić na serwer (14.10: wąski podgląd nadpisał układ z pełnego ekranu)
+    // SAVED positions 1:1 — without clipping to window width (narrower window = horizontal scrollbar);
+    // window-fit may NEVER hit the server (14.10: narrow preview overwrote the full-screen layout)
     okna = {};
     for (const [id, o] of Object.entries(oknaZapisane)) okna[id] = { ...o };
   }
@@ -240,15 +240,15 @@ function przycinWszystkie(p, S) {
   return out;
 }
 
-/* okna z serwera przejmujemy tylko gdy nic nie zapisujemy i nic nie trzymamy (§13: pamięć układu) */
+/* we take windows from the server only when nothing is being saved and nothing is held (§13: layout memory) */
 function oknaZSerweraFn(stan) {
   const serwer = stan.layout && stan.layout.okna;
   if (!serwer || czekamLayout || oknoAktywne || drag) return;
   const kluczS = Object.entries(serwer).map(([k, v]) => `${k}:${v.x},${v.y},${v.w},${v.h}`).join("|");
   const kluczL = Object.entries(oknaZapisane).map(([k, v]) => `${k}:${v.x},${v.y},${v.w},${v.h}`).join("|");
   if (kluczS === kluczL) { serwerKlucz = kluczS; return; }
-  /* /ws nadaje co 250 ms — klatka zbudowana PRZED naszym PUT nie moze cofnac swiezo zapisanego ulozenia;
-     przyjmujemy tylko NOWA wartacje serwera (zmiana z zewnatrz: inna karta / UŁÓŻ) */
+  /* /ws broadcasts every 250 ms — a frame built BEFORE our PUT must not undo a freshly saved layout;
+     we only accept a NEW server version (external change: another card / LAYOUT) */
   if (kluczS === serwerKlucz && Date.now() - poZapisie < 4000) return;
   serwerKlucz = kluczS;
   const dom = domyslneOkna(szerokoscKontenera());
@@ -262,7 +262,7 @@ function oknaZSerweraFn(stan) {
 }
 
 function renderPanele(stan) {
-  if (!layoutWczytany) return;                      // §13: najpierw układ z serwera, potem panele
+  if (!layoutWczytany) return;                      // §13: layout from the server first, then panels
   const serwer = (stan.layout && stan.layout.panels) || uklad.panels;
   if (!drag && !czekamLayout && serwer.join("|") !== uklad.panels.join("|"))
     uklad.panels = serwer.slice();
@@ -272,7 +272,7 @@ function renderPanele(stan) {
   const grid = $("panels");
   if (grid.dataset.k !== klucz) {
     grid.dataset.k = klucz;
-    for (const id of ids) grid.appendChild(panelEl(id));   // appendChild przenosi istniejące — kolej = ids
+    for (const id of ids) grid.appendChild(panelEl(id));   // appendChild moves existing — order = ids
     for (const [id, sec] of panelEls) if (!ids.includes(id)) { sec.remove(); panelEls.delete(id); }
     for (const id of ids) if (!oknaZapisane[id]) oknaZapisane[id] = domyslneOkna(szerokoscKontenera())[id];
     zastosujUklad();
@@ -290,7 +290,7 @@ function oznaczWstawienie(target, przed) {
 }
 function zoznaczWstawienie(target) { target.classList.remove("drop-before", "drop-after"); }
 
-/* ---------- zapis układu na serwer (§13: debounce 300 ms, po KAŻDYM przesunięciu/zmianie rozmiaru) ---------- */
+/* ---------- layout save to the server (§13: 300 ms debounce, after EVERY move/resize) ---------- */
 function zapiszLayoutDebounce() {
   czekamLayout = true;   // od razu: klatka /ws w oknie debounce nie moze cofnac swiezo przesunietego panelu
   clearTimeout(zapisTimer);
@@ -306,10 +306,10 @@ async function zapiszLayout() {
     await api("PUT", "/api/layout", { panels: uklad.panels, categories: uklad.cats, okna: okr });
     poZapisie = Date.now();
   } catch (e) { toast(`Zapis układu: ${e.message}`, true); }
-  finally { czekamLayout = false; }   // czekamy na odpowiedź serwera, nie na stały timeout
+  finally { czekamLayout = false; }   // we wait for the server's response, not a fixed timeout
 }
 
-/* ---------- „⟲ UŁÓŻ” (pasek górny): układ domyślny przy bieżącej szerokości, z potwierdzeniem ---------- */
+/* ---------- “⟲ LAYOUT” (top bar): default layout at current width, with confirmation ---------- */
 function ulozDomyslnie() {
   potwierdz("Ułożyć panele domyślnie? Bieżące rozmieszczenie zostanie nadpisane.", async () => {
     oknaZapisane = domyslneOkna(szerokoscKontenera());
@@ -319,7 +319,7 @@ function ulozDomyslnie() {
   });
 }
 
-/* ---------- przyciski „ZWOLNIJ GPU 0 / 1” (pasek górny, §13) + modal listy procesów ---------- */
+/* ---------- buttons “FREE GPU 0 / 1” (top bar, §13) + process list modal ---------- */
 function zwolnijGpu(i) {
   const orph = (ostatniStan?.orphans || []).filter((o) => (o.gpus || []).some((g) => g.gpu === i));
   const list = $("freeList");
@@ -337,7 +337,7 @@ function zwolnijGpu(i) {
 }
 
 /* ---------------- panel GPU: wszystkie karty w jednej tabeli + jeden wykres (15.10) ---------------- */
-/* kolor = karta (stały, niezależny od kolejności i stanu); paleta sprawdzona walidatorem CVD na tle panelu */
+/* color = card (stable, independent of order and state); palette checked with a CVD validator on the panel background */
 const KOLOR_GPU = ["#3987e5", "#d95926", "#199e70"];
 const kolorGpu = (i) => KOLOR_GPU[i] || "#8a94a6";
 const MIARY = {
@@ -349,12 +349,12 @@ const MIARY = {
 let miara = "vram";
 try { const m = localStorage.getItem("cm-miara-gpu"); if (MIARY[m]) miara = m; } catch (_) {}
 
-const gpuWiersze = new Map();   // index karty -> komórki wiersza tabeli
+const gpuWiersze = new Map();   // card index -> table row cells
 let gpuPanel = null;            // {tab, canvas, tip, procs, procRows, head}
-let kursorX = null;             // pozycja wskaźnika nad wykresem (px) — linia odczytu + wartości kart
+let kursorX = null;             // pointer position above the chart (px) — read line + card values
 let fontWykresu = "";
 
-const RING_R0 = 84, RING_KROK = 21, RING_W = 15;   // pierścienie: GPU0 zewnętrzny, każda kolejna karta o krok do środka
+const RING_R0 = 84, RING_KROK = 21, RING_W = 15;   // rings: GPU0 outermost, each next card one step inward
 let szczegolyGpu = false;
 try { szczegolyGpu = localStorage.getItem("cm-gpu-szczegoly") === "1"; } catch (_) {}
 
@@ -521,7 +521,7 @@ function renderGPU(gpus) {
   for (const [k, row] of gpuPanel.procRows) if (!widoczneP.has(k)) { row.remove(); gpuPanel.procRows.delete(k); }
 }
 
-/* ---------------- wykres 120 s: wszystkie karty, jedna miara, jedna oś (canvas, rAF) ---------------- */
+/* ---------------- 120 s chart: all cards, one measure, one axis (canvas, rAF) ---------------- */
 const HIST_S = 120, HIST_MAX = 600;
 const historia = new Map();
 
@@ -559,13 +559,13 @@ function rysujWykresy() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
   const now = Date.now() / 1000, M = MIARY[miara], max = skalaMax();
-  const L = 34, P = 64, G = 6, D = 6;                    // marginesy: oś, etykiety końców linii, góra, dół
+  const L = 34, P = 64, G = 6, D = 6;                    // margins: axis, line-end labels, top, bottom
   const pw = Math.max(10, w - L - P), ph = Math.max(10, h - G - D);
   const x = (t) => L + ((t - (now - HIST_S)) / HIST_S) * pw;
   const y = (v) => G + ph - (Math.max(0, Math.min(max, v)) / max) * ph;
   ctx.font = fontWykresu || (fontWykresu = "10px " + getComputedStyle(document.body).getPropertyValue("--mono"));
   ctx.textBaseline = "middle";
-  for (let i = 0; i <= 4; i++) {                         // siatka + podpisy osi (jedna oś, jedna jednostka)
+  for (let i = 0; i <= 4; i++) {                         // grid + axis labels (one axis, one unit)
     const v = (max / 4) * i, yy = Math.round(y(v)) + 0.5;
     ctx.strokeStyle = "rgba(26,77,122,.55)"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(L, yy); ctx.lineTo(L + pw, yy); ctx.stroke();
@@ -582,7 +582,7 @@ function rysujWykresy() {
     const ost = pkt[pkt.length - 1];
     konce.push({ idx, y: y(M.wart(ost)), v: M.wart(ost), x: x(ost.t) });
   }
-  konce.sort((a, b) => a.y - b.y);                       // etykiety końców linii bez nakładania
+  konce.sort((a, b) => a.y - b.y);                       // line-end labels without overlap
   for (let i = 1; i < konce.length; i++) konce[i].ly = Math.max(konce[i].y, (konce[i - 1].ly ?? konce[i - 1].y) + 12);
   for (const k of konce) {
     const ly = Math.min(h - 6, k.ly ?? k.y);
@@ -592,7 +592,7 @@ function rysujWykresy() {
     ctx.fillStyle = "#d7e9f8"; ctx.textAlign = "left";
     ctx.fillText(`GPU${k.idx} ${Math.round(k.v)}${M.jedn}`, L + pw + 15, ly);
   }
-  if (kursorX !== null && kursorX >= L && kursorX <= L + pw) {   // linia odczytu: wartości kart w tej chwili
+  if (kursorX !== null && kursorX >= L && kursorX <= L + pw) {   // read line: card values at this moment
     const t = now - HIST_S + ((kursorX - L) / pw) * HIST_S;
     ctx.strokeStyle = "rgba(215,233,248,.45)"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(Math.round(kursorX) + 0.5, G); ctx.lineTo(Math.round(kursorX) + 0.5, G + ph); ctx.stroke();
@@ -686,8 +686,8 @@ function renderLLM(stan) {
     setText(k.meta, ` · :${m.port}` + (m.proxy ? ` · działa ${uptimeTxt(Math.round(m.up_s || 0))}` : "") + sr);
     const s = m.sesja || {};
     const a = m.active;
-    /* kafle na żywo: w trakcie zapytania duża liczba = prędkość TERAZ (co klatkę /ws), średnia sesji pod spodem;
-       tokeny i liczba zapytań wliczają zapytanie w toku */
+    /* live tiles: during a query the big number = speed NOW (per /ws frame), session average below;
+       tokens and query count include the in-flight query */
     const generuje = a && a.phase !== "reading" && a.inst > 0, czyta = a && a.phase === "reading" && a.ptps > 0;
     setText(k.tg, generuje ? n1(a.inst) : n1(s.tg_avg));
     setText(k.tgu, generuje ? `teraz · śr. sesji ${n1(s.tg_avg)}` : "średnio od startu serwera");
@@ -832,14 +832,14 @@ function renderSystem(stan) {
       `<div class="kv"><span>${k}</span><b class="num ${klasaTemp(v)}">${tempTxt(v)} °C</b></div>`).join("");
   }
 
-  // ta sama liczba co panel Energia i zasobnik: pobór z gniazdka (T400 siedzi w odczycie Corsaira, nie osobno)
+  // the same number as the Energy panel and the gauge: power from the outlet (T400 sits in the Corsair read, not separately)
   const en = stan.energia || {};
   setText($("mocTotal"), en.teraz_w_gniazdko == null ? "–" : `${Math.round(en.teraz_w_gniazdko)} W`);
   $("mocBox").title = `Z gniazdka ${Math.round(en.teraz_w_gniazdko || 0)} W · DC ${Math.round(en.teraz_w || 0)} W `
     + `(Corsair z T400 ${Math.round(en.psu_glowny_w || 0)} W + V100 ${Math.round(en.psu_gpu_w || 0)} W)`;
 }
 
-/* ---------------- modele: kategorie + przeciąganie (§11b) + świecący kafel (§11c) ---------------- */
+/* ---------------- models: categories + dragging (§11b) + glowing tile (§11c) ---------------- */
 const modelWiersze = new Map();
 const catEls = new Map();
 const STAN_TXT = { stopped: "zatrzymany", starting: "startuje…", ready: "gotowy", stopping: "zatrzymuje…", failed: "padł" };
@@ -863,9 +863,9 @@ function budujModele(body, head) {
 function wariantLabel(p) { return `GPU ${(p.gpus || []).join("+")} · ${Math.max(...(p.vram || [0]))} MiB`; }
 
 const KAT_TP = ["TP1", "TP2"];
-/* Zakładka modelu wg liczby KART w wariantach (1 karta -> TP1, 2+ -> TP2); modele bez
-   wariantów (Grafika/Muzyka/Pomocnicze) zostają w swojej kategorii. Ten sam warunek co
-   registry.tp_kategoria() po stronie serwera. */
+/* Model tab by number of CARDS in placements (1 card -> TP1, 2+ -> TP2); models without
+   placements (Graphics/Music/Helper) stay in their category. The same condition as
+   registry.tp_kategoria() on the server side. */
 function tpKategoria(m) {
   const pl = m.placements || [];
   if (!pl.length) return null;
@@ -881,8 +881,8 @@ function kategorieZUkladu(stan) {
   }
   const cats = uklad.cats.slice();
   const modele = stan.models || [];
-  /* 02.11: zakładki TP1 / TP2 — modele z wariantami trafiają tam automatycznie wg kart.
-     TP1 i TP2 są zawsze (nawet puste), kategorie bez modeli znikają z panelu. */
+  /* 02.11: TP1 / TP2 tabs — models with placements land there automatically by card count.
+     TP1 and TP2 are always present (even when empty), categories without models vanish from the panel. */
   for (const n of KAT_TP) if (!cats.some((c) => c.name === n)) cats.push({ name: n, collapsed: false });
   for (const m of modele) {
     const kat = tpKategoria(m) || m.category;
@@ -901,8 +901,8 @@ function porzadekZSerwera(stan) {
   }
   return out;
 }
-/* Sort w zakładce: PRZYPIĘTE modele (pin=1) trzymają swoje miejsce (po `order`),
-   nieprzypięte sortują się obok nich wg (order, id) — nie skaczą przy odświeżaniu stanu. */
+/* Sort in the tab: PINNED models (pin=1) hold their place (by `order`),
+   unpinned sort next to them by (order, id) — they do not jump on state refresh. */
 function sortujWKategorii(ids, modele) {
   const po = (a, b) => (modele.get(a).order - modele.get(b).order) || (a < b ? -1 : a > b ? 1 : 0);
   const przypiete = ids.filter((id) => modele.get(id).pin).sort(po);
@@ -914,8 +914,8 @@ function porzadekModeli(stan) {
   const serwer = {};
   for (const [kat, ids] of Object.entries(porzadekZSerwera(stan))) serwer[kat] = sortujWKategorii(ids, modele);
   if (!drag) {
-    // 02.11: serwer wygrywa, gdy różni się kolejnością PRZYPIĘTYCH (serwer jest źródłem pozycji).
-    // Gdy różni się tylko nieprzypiętymi — trzymamy lokalny porządek do końca zapisu kolejności.
+    // 02.11: the server wins when the ORDER of pinned models differs (the server is the source of positions).
+    // When only unpinned differ — we keep the local order until the order write completes.
     const sporne = Object.keys(serwer).some((kat) => {
       const po = (ids) => (ids || []).filter((id) => modele.get(id)?.pin).join(",");
       return po(porzadekLokalny?.[kat]) !== po(serwer[kat]);
@@ -928,9 +928,9 @@ function porzadekModeli(stan) {
 let porzadekLokalny = null;
 
 function wierszModelu(m) {
-  // Zawsze nowy wiersz: stary egzemplarz może siedzieć w innym pojemniku (po
-  // zmianie kolejności/przypięciu) albo w już usuniętym katalogu — przeniesienie
-  // go (appendChild) zostawiałoby kategorię bez kart.
+  // Always a new row: the old instance may sit in another container (after
+  // a reorder/pin) or in an already-deleted category — the move
+  // (appendChild) would leave the category without tiles.
   const wStary = modelWiersze.get(m.id);
   if (wStary) wStary.root.remove();
   const root = el("div", "model");
@@ -1137,7 +1137,7 @@ function renderModelValues(m) {
   if (tail) setText(w.tail, tail);
 }
 
-/* ---------- przeciąganie modeli i kategorii ---------- */
+/* ---------- dragging models and categories ---------- */
 function podlaczDragModelu(root, id) {
   root.addEventListener("dragstart", (e) => {
     e.stopPropagation();
@@ -1211,7 +1211,7 @@ function wstawModel(id, kategoria, przedId, przed) {
   porzadekLokalny = p;
   $("modelList").dataset.k = "";
   // 02.11: TP1/TP2 to kategorie wyliczone z LAYOUTU (serwer) — bez nich PUT /api/models/order
-  // przeniósłby model z powrotem do starej kategorii przy najbliższym odświeżeniu.
+  // would move the model back to the old category on the next refresh.
   for (const [kat, ids] of Object.entries(porzadekZSerwera(ostatniStan || { models: [] }))) {
     if (KAT_TP.includes(kat) && !(kat in p)) p[kat] = ids;
   }
@@ -1240,7 +1240,7 @@ async function przypnijModel(id, pin) {
       const m = (ostatniStan.models || []).find((x) => x.id === id);
       if (m) m.pin = pin ? 1 : 0;
     }
-    porzadekLokalny = null;            // lista przebudowana z nowego porządku (serwer)
+    porzadekLokalny = null;            // list rebuilt from the new order (server)
     $("modelList").dataset.k = "";
     if (ostatniStan) renderModele(ostatniStan);
     toast(pin ? "Przypięty — nie zmieni miejsca na liście" : "Odpięty — sortuje się normalnie");
@@ -1282,7 +1282,7 @@ document.addEventListener("contextmenu", (e) => { if (menuModelu && !e.target.cl
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") zamknijMenuModelu(); });
 window.addEventListener("scroll", () => zamknijMenuModelu(), true);
 
-/* ---------- kategorie: dodaj / zmień nazwę ---------- */
+/* ---------- categories: add / rename ---------- */
 let kategoriaEdytowana = null;
 function otworzKategorie(nazwa) {
   kategoriaEdytowana = nazwa;
@@ -1390,17 +1390,17 @@ function renderEnergia(stan) {
   const e = stan.energia || {};
   energiaDane = e;
   if (e.psu_sprawnosc !== undefined && e.psu_sprawnosc !== null) energiaSprawnosc = e.psu_sprawnosc;
-  /* jedna liczba mocy wszędzie (panel, pasek MOC, zasobnik, Wh/kWh): pobór Z GNIAZDKA;
-     DC = odczyt Corsaira (z T400) + V100 z NVML — każdy zasilacz dzielony przez swoją sprawność */
+  /* one power figure everywhere (panel, MOC bar, gauge, Wh/kWh): power from the OUTLET;
+     DC = Corsair read (with T400) + V100 from NVML — each PSU divided by its own efficiency */
   setText($("enNow"), e.teraz_w_gniazdko == null ? "–" : String(Math.round(e.teraz_w_gniazdko)));
   setText($("enGniazdko"), e.teraz_w == null ? "–" : `${Math.round(e.teraz_w)} W`);
   const spr = (v) => (v == null ? "" : ` ÷ ${String(v).replace(".", ",")}`);
   setText($("enPsuGlowny"), e.psu_glowny_w == null ? "–" : `${Math.round(e.psu_glowny_w)} W${spr(e.psu_sprawnosc)}`);
   setText($("enPsuGpu"), e.psu_gpu_w == null ? "–" : `${Math.round(e.psu_gpu_w)} W${spr(e.psu_gpu_sprawnosc)}`);
-  const karty = Object.entries(e.psu_gpu_karty || {});   // każda V100 z własnego pomiaru NVML (nie ×2)
+  const karty = Object.entries(e.psu_gpu_karty || {});   // each V100 from its own NVML measurement (not ×2)
   setText($("enPsuGpuOpis"), karty.length
     ? `zasilacz V100: ${karty.map(([i, w]) => `GPU${i} ${Math.round(w)} W`).join(" + ")} =` : "zasilacz V100 (osobny)");
-  const urz = e.urzadzenia || [];                       // stale włączone, zasilane z gniazdka (nie przez PSU)
+  const urz = e.urzadzenia || [];                       // always-on, powered from the outlet (not through the PSU)
   const pl = (v) => String(v).replace(".", ",");
   setText($("enUrzadzenia"), e.urzadzenia_w == null ? "–" : `${pl(e.urzadzenia_w)} W`);
   setText($("enUrzOpis"), urz.length
@@ -1451,10 +1451,10 @@ function rysujEnergie() {
   ctx.shadowBlur = 0;
 }
 
-/* ---------------- sieroty (§13: panel USUNIETY z UI — backend zostaje, obsługa przycisków ZWOLNIJ GPU 0/1) ---------------- */
+/* ---------------- orphans (§13: panel removed from UI — backend stays, handling of FREE GPU 0/1 buttons) ---------------- */
 function renderSieroty(stan) {
   const wszystkie = stan.orphans || [];
-  for (const i of [0, 1]) {                      // liczniki obcych procesów przy przyciskach w pasku górnym
+  for (const i of [0, 1]) {                      // counters of foreign processes at the top bar buttons
     const guz = document.querySelector(`.btn-gpu-free[data-gpu="${i}"]`);
     if (guz) setText(guz.querySelector(".cnt"),
       `(${wszystkie.filter((o) => (o.gpus || []).some((g) => g.gpu === i)).length})`);
@@ -1488,7 +1488,7 @@ function renderSieroty(stan) {
   }
 }
 
-/* ---------------- plakietki działających modeli w pasku górnym (§11c) ---------------- */
+/* ---------------- badges of running models in the top bar (§11c) ---------------- */
 function renderRunBadges(stan) {
   const box = $("runBadges");
   const lista = (stan.models || [])
@@ -1504,7 +1504,7 @@ function renderRunBadges(stan) {
 
 /* ---------------- formularz modelu (dodaj / edytuj) ---------------- */
 let edytowanyId = null;
-let wariantyEdytowanego = [];   // oryginalne placements — asymetryczne warianty NIE moga byc spłaszczone
+let wariantyEdytowanego = [];   // original placements — asymmetric placements can NOT be flattened
 let wariantEdytowany = 0;       // ktory wariant edytujemy (karty/VRAM dotycza tylko niego)
 
 /* zbudujWarianty — czysta funkcja (testowalna w node): zachowuje ISTNIEJACE warianty modelu.
@@ -1672,7 +1672,7 @@ $("importGo").onclick = async () => {
   } catch (e) { $("importErr").textContent = e.message; }
 };
 
-/* ---------------- przełączanie ---------------- */
+/* ---------------- switching ---------------- */
 let switchZ = null;
 function otworzSwitch(id) {
   const m = (ostatniStan?.models || []).find((x) => x.id === id);
@@ -1720,7 +1720,7 @@ async function odswiezLog() {
   } catch (e) { $("logBody").textContent = e.message; }
 }
 
-/* ---------------- render główny ---------------- */
+/* ---------------- main render ---------------- */
 function render(stan) {
   ostatniStan = stan;
   zbierzHistorie(stan);
@@ -1735,7 +1735,7 @@ function render(stan) {
   renderRunBadges(stan);
 }
 
-/* ---------------- start: układ 1:1 z serwera ZANIM panele się pokażą (§13: bez mignięcia) ---------------- */
+/* ---------------- start: layout 1:1 from the server BEFORE panels appear (§13: no blink) ---------------- */
 let layoutWczytany = false;
 let brakujace = [];
 
@@ -1752,7 +1752,7 @@ async function pobierzLayout() {
     toast(`Układ paneli: ${e.message} — używam układu domyślnego`, true);
   } finally {
     layoutWczytany = true;
-    $("panels").hidden = false;                     // panele pokazują się już na właściwych miejscach
+    $("panels").hidden = false;                     // panels appear already at the right places
     if (brakujace.length) {                         // szerokosc kontenera znana dopiero po pokazaniu
       const dom = domyslneOkna(szerokoscKontenera());
       for (const id of brakujace) oknaZapisane[id] = dom[id];
@@ -1775,7 +1775,7 @@ function podlaczPasek() {
 
 window.addEventListener("resize", () => {
   if (!layoutWczytany) return;
-  zastosujUklad();                                  // przycięcie do nowej szerokości — ZAPISANE pozycje nietknięte
+  zastosujUklad();                                  // clip to the new width — SAVED positions untouched
 });
 
 setInterval(() => setText($("zegar"), fmtTime(new Date())), 1000);

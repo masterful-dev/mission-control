@@ -1,73 +1,73 @@
-# Centrum Misji V2 (program C++)
+# Centrum Misji V2 (C++ program)
 
-Wersja V2: przebudowa od 11.11.2026. Wersja V1 leży bez zmian w `/mnt/RUNE/PROJEKTY/CENTRUM-MISJI/program`. Obie mogą działać naraz: V2 ma własne ustawienia (`~/.local/share/Masterful/centrum-misji-v2/ustawienia.json`) i własną blokadę jednej kopii.
+V2: rebuild from 11.11.2026. V1 stays unchanged in `/mnt/RUNE/PROJEKTY/CENTRUM-MISJI/program`. Both can run at the same time: V2 has its own settings (`~/.local/share/Masterful/centrum-misji-v2/ustawienia.json`) and its own single-instance lock.
 
-Jeden program na Linuksa i Windows: C++20, SDL3, OpenGL 3.3, Dear ImGui. Wszystkie biblioteki wchodzą do pliku wykonywalnego.
+One program for Linux and Windows: C++20, SDL3, OpenGL 3.3, Dear ImGui. All libraries are linked into the executable.
 
-## Budowa
+## Build
 
-Linux, wynik `../bin/centrum`:
+Linux, produces `../bin/centrum`:
 
     ./buduj.sh
 
-Windows z Linuksa, wynik `../bin/windows/centrum.exe`:
+Windows from Linux, produces `../bin/windows/centrum.exe`:
 
     ./buduj-windows.sh
 
-Obok `centrum.exe` trzeba położyć katalog `dane/`.
+The `dane/` folder must sit next to `centrum.exe`.
 
-## Uruchomienie
+## Run
 
-| Argument | Działanie |
+| Argument | Effect |
 |---|---|
-| bez argumentów | prawdziwe dane z `http://127.0.0.1:8770`, gdy serwer nie odpowiada: symulacja z paskiem sterowania |
-| `--sim` | zawsze symulacja |
-| `--adres URL` | inny serwer Centrum |
-| `--dok` | tryb modułu DSH++: okno bez ramki, wiersz `DOK okno=<numer>` na wyjściu |
-| `--rozmiar W H` | rozmiar okna |
-| `--test plik` | scenariusz testowy z `narzedzia/testy/` |
+| (no arguments) | real data from `http://127.0.0.1:8770`; if the server does not answer: simulation with a control bar |
+| `--sim` | always simulation |
+| `--adres URL` | different Centrum server |
+| `--dok` | DSH++ module mode: frameless window, line `DOK okno=<number>` on the output |
+| `--rozmiar W H` | window size |
+| `--test plik` | test scenario from `narzedzia/testy/` |
 
-Skróty: `F` sama scena, `D` pasek symulacji, `Esc` powrót, `Ctrl` + kółko rozmiar interfejsu.
+Shortcuts: `F` face only, `D` simulation bar, `Esc` back, `Ctrl` + wheel: interface size.
 
-## Układ plików
+## Layout of files
 
-| Plik | Zawartość |
+| File | Contents |
 |---|---|
-| `zrodla/glowny.cpp` | okno, pętla, dane z API lub symulacji, zasobnik, sterowanie testowe |
-| `zrodla/okno.cpp` | górny pasek, układ paneli (domyślny i własny: przesuwanie, rozciąganie, przyciąganie, zapis), scena, tryb wąski |
-| `zrodla/panele.cpp` | panele GPU, procesor, RAM, dyski, model, lista modeli, energia; chmurki każdego elementu |
-| `zrodla/menu.cpp` | menu prawego przycisku, osobne dla każdego rodzaju elementu |
-| `zrodla/dialogi.cpp` | Ustawienia, właściwości modelu, formularz modelu, import, raport, potwierdzenia |
-| `zrodla/aplikacja.cpp` | ustawienia, skórki, akcje na modelach, silniki modeli, energia z 30 dni |
-| `zrodla/dyski.cpp` | dyski tego komputera wykrywane z systemu (Linux i Windows): nazwa, opis, zajętość, temperatura |
-| `zrodla/scena.cpp` | tło okna i żywa podstawa sceny (jeden shader na cały ekran) |
-| `zrodla/api.cpp` | klient `/api/state` i zleceń |
-| `zrodla/sim.cpp` | symulacja |
-| `zrodla/ui.cpp` | czcionki, przyciski, kolory, chmurki, rysunki kart |
-| `narzedzia/eksport_makiety.mjs` | teksty, skórki i modele z makiety do `zrodla/gen_dane.inc` |
-| `narzedzia/testy/` | scenariusze, atrapa serwera `atrapa.py` |
+| `zrodla/glowny.cpp` | window, loop, data from API or simulation, tray, test control |
+| `zrodla/okno.cpp` | top bar, panel layout (default and custom: move, stretch, snap, save), scene, narrow mode |
+| `zrodla/panele.cpp` | GPU, CPU, RAM, disks, model, model list, energy panels; tooltip of every element |
+| `zrodla/menu.cpp` | right-click menu, separate for each element kind |
+| `zrodla/dialogi.cpp` | settings, model properties, model form, import, report, confirmations |
+| `zrodla/aplikacja.cpp` | settings, skins, model actions, model engines, 30-day energy |
+| `zrodla/dyski.cpp` | this machine's disks detected from the system (Linux and Windows): name, description, usage, temperature |
+| `zrodla/scena.cpp` | window background and live scene base (one shader for the whole screen) |
+| `zrodla/api.cpp` | `/api/state` client and commands |
+| `zrodla/sim.cpp` | simulation |
+| `zrodla/ui.cpp` | fonts, buttons, colors, tooltips, card drawings |
+| `narzedzia/eksport_makiety.mjs` | texts, skins and models from the makieta to `zrodla/gen_dane.inc` |
+| `narzedzia/testy/` | scenarios, fake server `atrapa.py` |
 
-## Co zmienia V2
+## What V2 changes
 
-- Jedna lista modeli zamiast paneli TP1 i TP2: rysunek jednej albo dwóch kart przy modelu, kolor paska (1 karta, 2 karty), filtr, sortowanie po kliknięciu nagłówka kolumny.
-- Silnik modelu jako osobna cecha: wykrywany z komendy startu, pokazany znaczkiem, zmieniany w oknie „Właściwości” (prawy przycisk na modelu). Nazwa na liście bez silnika i bez TP1/TP2.
-- Każdy panel można przesunąć za tytuł i rozciągnąć za krawędź albo róg. Układ zapisuje się od razu jako ułamki okna.
-- Dyski wykrywa program, nie konfiguracja serwera. Dwuklik otwiera katalog.
-- Energia: chmurka nad każdym słupkiem, widoki 48 godzin, 30 dni, obecny miesiąc.
-- Chmurka nad każdym elementem, menu prawego przycisku zależne od miejsca.
-- Twarz: hologram z oryginalnego Centrum Misji, zawsze wyśrodkowana w wolnym polu, bez własnego tła i bez okręgów; pod nią żywa podstawa.
+- One model list instead of separate TP1 and TP2 panels: one or two cards drawn next to the model, bar color (1 card, 2 cards), filter, sort by clicking a column header.
+- Model engine as a separate feature: detected from the launch command, shown as a badge, changed in the "Properties" window (right-click on a model). The list name has no engine and no TP1/TP2.
+- Every panel can be moved by its title and stretched by an edge or a corner. The layout saves instantly as fractions of the window.
+- Disks are detected by the program, not by the server configuration. Double-click opens the folder.
+- Energy: tooltip over every bar, views for 48 hours, 30 days, the current month.
+- Tooltip over every element, right-click menu depending on location.
+- Face: hologram from the original Centrum Misji, always centered in the free area, no own background and no circles; live base behind it.
 
-Wersja finalna V2: 2.1.0 z 11.11.2026 (znacznik git `v2-final`). Od tej wersji autostart systemu (`~/.config/autostart/centrum-misji.desktop`) i skrót `CENTRUM MISJI V2` na pulpicie uruchamiają `bin/centrum` z tego katalogu.
+Final V2 version: 2.1.0 from 11.11.2026 (git tag `v2-final`). From this version system autostart (`~/.config/autostart/centrum-misji.desktop`) and the `CENTRUM MISJI V2` desktop shortcut launch `bin/centrum` from this folder.
 
-## Testy
+## Tests
 
     SDL_VIDEO_DRIVER=offscreen ../bin/centrum --sim --test narzedzia/testy/v2-sim.txt --rozmiar 1680 962
 
-Scenariusz steruje myszą i rozmiarem okna, zrzuty trafiają do `narzedzia/testy/zrzuty/`. Polecenie `czas N` czeka N sekund (sterownik `offscreen` nie ma limitu klatek). Scenariusze z kliknięciami uruchamia się tylko z `--sim`: na prawdziwych danych kliknięcie w menu modelu mogłoby go uruchomić. Przycisków start i stop nie testuje się na prawdziwym serwerze: do tego służy `narzedzia/testy/atrapa.py <port>` z `--adres http://127.0.0.1:<port>`.
+The scenario drives the mouse and window size, screenshots land in `narzedzia/testy/zrzuty/`. The `czas N` command waits N seconds (the `offscreen` driver has no frame limit). Scenarios with clicks only run with `--sim`: on real data, a click in the model menu could start the model. Start and stop buttons are not tested on the real server: use `narzedzia/testy/atrapa.py <port>` with `--adres http://127.0.0.1:<port>`.
 
-## Licencje
+## Licenses
 
-| Składnik | Licencja |
+| Component | License |
 |---|---|
 | SDL3 | zlib |
 | Dear ImGui | MIT |
@@ -75,14 +75,14 @@ Scenariusz steruje myszą i rozmiarem okna, zrzuty trafiają do `narzedzia/testy
 | nlohmann json | MIT |
 | cpp-httplib | MIT |
 | Inter, JetBrains Mono, Noto Sans Symbols2, Noto Sans Math | SIL OFL 1.1 |
-| DejaVu Sans | licencja Bitstream Vera |
+| DejaVu Sans | Bitstream Vera license |
 
-## Start i okno
+## Start and window
 
-Na Linuksie program zastępuje stare okno: autostart V2 to `~/.config/autostart/centrum-misji-v2.desktop` (przełącznik „Start z systemem”); menu i zasobnik systemu wskazują nadal V1. Przełącznik „Start z systemem” w Ustawieniach czyta i zmienia ten sam plik.
+On Linux the program replaces the old window: V2 autostart is `~/.config/autostart/centrum-misji-v2.desktop` (the "Start with system" toggle); the menu and the system tray still point at V1. The "Start with system" toggle in Settings reads and changes the same file.
 
-Działa jedna kopia: kolejne uruchomienie pokazuje istniejące okno i kończy się. Blokada nie dotyczy `--dok`, `--test` i `--sim`.
+Only one copy runs: a second launch shows the existing window and exits. The lock does not apply to `--dok`, `--test` and `--sim`.
 
-Okno powstaje na ekranie, na którym je ostatnio zamknięto (`ekran` w `ustawienia.json`), a przed pierwszym zamknięciem na ekranie głównym.
+The window opens on the screen where it was last closed (`ekran` in `ustawienia.json`), and before the first close on the main screen.
 
-Test bez okna na monitorze: `SDL_VIDEO_DRIVER=offscreen ../bin/centrum --test scenariusz.txt --rozmiar 900 620`. Na tym sterowniku nie ma limitu klatek, więc `czekaj` trwa dużo krócej niż na monitorze.
+Test without a window on the monitor: `SDL_VIDEO_DRIVER=offscreen ../bin/centrum --test scenariusz.txt --rozmiar 900 620`. On this driver there is no frame limit, so `czekaj` lasts much less than on a monitor.

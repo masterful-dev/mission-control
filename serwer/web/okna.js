@@ -1,11 +1,11 @@
-/* CENTRUM MISJI — swobodny układ paneli (SPEC §13): moduł ES z czystymi funkcjami geometrii
-   + obsługa wskaźnika (pointer events, setPointerCapture — NIE HTML5 DnD). Zero bibliotek.
-   Panel = {id, x, y, w, h} w PIKSELACH (bez siatki, bez przyciągania). */
+/* CENTRUM MISJI — free panel layout (SPEC §13): ES module with pure geometry functions
+   + pointer handling (pointer events, setPointerCapture — NOT HTML5 DnD). Zero libraries.
+   Panel = {id, x, y, w, h} in PIXELS (no grid, no snapping). */
 export const MIN_OKNO_W = 220, MIN_OKNO_H = 80, OKNO_GAP = 12;
 export const OKNO_H = { gpu: 400, llm: 400, system: 340, models: 480, energia: 260 };
 export const PANELS = ["gpu", "llm", "system", "models", "energia"];
 
-/* dwa okna przecinają się (wyłącznie krawędzie NIE są przecięciem) */
+/* two windows intersect (edges alone do NOT intersect) */
 export function przecina(a, b) {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
@@ -22,17 +22,17 @@ export function przycin(o, szerokosc) {
   };
 }
 
-/* rozsun(panele, ruszanyId) — CZYSTA funkcja: zwraca NOWE okna; panele przecinające ruszany
-   przesuwane w DÓŁ o minimalną wartość (kaskadowo, aż nic się nie przecina).
-   Pozostałych paneli nie ruszamy (żadnego dociągania w górę). RUSZANY panel jest „najwyżej”
-   w kolejności (zawsze wygrywa remis y) — dlatego on sam nigdy nie zostaje przesunięty. */
+/* rozsun(panele, ruszanyId) — PURE function: returns NEW windows; windows intersecting the moved
+   one are pushed DOWN by the minimal value (cascading, until nothing intersects).
+   The rest is untouched (no pull-up). The MOVED panel is "highest"
+   in order (always wins the y tie) — that is why it never moves itself. */
 export function rozsun(panele, ruszanyId) {
-  // Ruszany panel zostaje DOKŁADNIE tam, gdzie go upuszczono. Każdy panel, który na niego nachodzi,
-  // zjeżdża tuż pod niego; kaskadowo dalej (pod panele już przesunięte). Panele bez kolizji — nietknięte.
+  // The moved panel stays EXACTLY where it was dropped. Every panel that overlaps it,
+  // slides just under it; cascading further (under already-moved panels). Conflict-free panels — untouched.
   const out = {};
   for (const id of Object.keys(panele || {})) out[id] = { ...panele[id] };
   if (!out[ruszanyId]) return out;
-  const stale = [ruszanyId];                        // panele, których pozycja jest już ustalona
+  const stale = [ruszanyId];                        // panels whose position is already set
   for (let iter = 0; iter < 1000; iter++) {
     let ruszone = false;
     for (const id of Object.keys(out).sort((a, b) => out[a].y - out[b].y || (a < b ? -1 : 1))) {
@@ -42,16 +42,16 @@ export function rozsun(panele, ruszanyId) {
         const o = out[stale[k]];
         if (przecina(p, o)) { p.y = o.y + o.h + OKNO_GAP; ruszone = true; k = -1; }
       }
-      if (ruszone) { stale.push(id); break; }    // ustalony; od nowa — kolejne mogą nachodzić na niego
+      if (ruszone) { stale.push(id); break; }    // determined; from scratch — the next may overlap it
     }
     if (!ruszone) break;
   }
   return out;
 }
 
-/* naprawUklad(panele) — CZYSTA funkcja: usuwa WSZYSTkie przecięcia (każde okno przesuwane w DÓŁ,
-   kaskadowo, aż nic się nie przecina). Używane po wczytaniu układu z serwera (dostosowanie do
-   bieżącej szerokości okna) i po rozsunie — pozycje x/rozmiary nigdy się nie zmieniają. */
+/* naprawUklad(panele) — PURE function: removes ALL intersections (every window pushed DOWN,
+   cascading, until nothing intersects). Used after loading the layout from the server (fit to
+   the current window width) and after rozsun — x positions/sizes are never changed. */
 export function naprawUklad(panele) {
   const out = {};
   for (const id of Object.keys(panele || {})) out[id] = { ...panele[id] };
@@ -74,8 +74,8 @@ export function naprawUklad(panele) {
   return out;
 }
 
-/* układ domyślny §13 (odstęp 12 px): rząd 1 GPU (wszystkie karty, 1/2) | Model LLM (1/2), h 400;
-   rząd 2 System (1/2, h 340) | Modele (1/2, h 480); pod Systemem Energia (1/2, h 260). */
+/* default layout §13 (12 px gap): row 1 GPU (all cards, 1/2) | Model LLM (1/2), h 400;
+   row 2 System (1/2, h 340) | Models (1/2, h 480); below System Energy (1/2, h 260). */
 export function domyslneOkna(szerokosc, paneli = PANELS) {
   const S = Math.max(660, Math.round(szerokosc));
   const pol = Math.floor((S - OKNO_GAP) / 2);
@@ -92,7 +92,7 @@ export function domyslneOkna(szerokosc, paneli = PANELS) {
   return out;
 }
 
-/* wąskie okno (< 900 px): panele jeden pod drugim na pełną szerokość — zapisane pozycje nietknięte */
+/* narrow window (< 900 px): panels one under another at full width — saved positions untouched */
 export function waskiUklad(panele, kolejnosc, szerokosc) {
   const out = {};
   let y = 0;
@@ -105,24 +105,24 @@ export function waskiUklad(panele, kolejnosc, szerokosc) {
   return out;
 }
 
-/* wysokość kontenera = najniższa krawędź + 12 px (strona przewija się w pionie) */
+/* container height = lowest edge + 12 px (page scrolls vertically) */
 export function wysokoscKontenera(panele) {
   let max = 0;
   for (const o of Object.values(panele || {})) max = Math.max(max, (o.y || 0) + (o.h || 0));
   return max + OKNO_GAP;
 }
 
-/* ---------- obsługa wskaźnika ----------
+/* ---------- pointer handling ----------
    ctx = { szerokosc(), okno(id), setOkno(id, okno), onDragStart(id), onEnd(id, typ), onDomylny(id) }
-   Przenoszenie: chwyt za CAŁY nagłówek (poza przyciskami) — panel płynnie podąża za wskaźnikiem.
-   Rozsun (bez nakładania) następuje dopiero po upuszczeniu / zmianie rozmiaru. */
+   Dragging: grip on the WHOLE header (outside buttons) — the panel fluidly follows the pointer.
+   Spread (no overlap) happens only on drop / resize. */
 export function podlaczPrzenoszenie(sec, ctx) {
   const head = sec.querySelector(".p-head");
   if (!head) return;
   let start = null;
   head.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target.closest("button,select,input,a,.p-resize")) return;
-    if (ctx.zablokowane && ctx.zablokowane()) return;   // wąskie okno (< 900 px): układ pionowy, drag zablokowany
+    if (ctx.zablokowane && ctx.zablokowane()) return;   // narrow window (< 900 px): vertical layout, drag blocked
     const id = sec.dataset.panel, o = ctx.okno(id);
     if (!o) return;
     e.preventDefault();
@@ -151,7 +151,7 @@ export function podlaczPrzenoszenie(sec, ctx) {
   head.addEventListener("pointercancel", koncz);
 }
 
-/* zmiana rozmiaru: uchwyt w prawym dolnym rogu, płynnie co do piksela; dwuklik = rozmiar domyślny */
+/* resize: handle in the bottom-right corner, fluidly per pixel; double-click = default size */
 export function podlaczRozmiar(sec, ctx) {
   const uchwyt = sec.querySelector(".p-resize");
   if (!uchwyt) return;
@@ -159,11 +159,11 @@ export function podlaczRozmiar(sec, ctx) {
   let start = null;
   uchwyt.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
-    if (ctx.zablokowane && ctx.zablokowane()) return;   // wąskie okno (< 900 px): rozmiar zablokowany
+    if (ctx.zablokowane && ctx.zablokowane()) return;   // narrow window (< 900 px): resize blocked
     e.preventDefault(); e.stopPropagation();
     try { uchwyt.setPointerCapture(e.pointerId); } catch (_) {}
     const o = ctx.okno(sec.dataset.panel);
-    if (!o) return;                                   // wąskie okno (< 900 px): rozmiar zablokowany
+    if (!o) return;                                   // narrow window (< 900 px): resize blocked
     start = { px: e.clientX, py: e.clientY, w: o.w, h: o.h };
     sec.classList.add("resizing");
     ctx.onDragStart(sec.dataset.panel);

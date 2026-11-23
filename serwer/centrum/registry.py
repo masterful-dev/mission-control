@@ -25,7 +25,7 @@ DEFAULT_HEALTH = "/v1/models"
 RAM_GB_STRATA = 47
 RAM_GB_DEFAULT = 2
 DEFAULT_CATEGORY = "Inne"
-# 02.11: zakładki TP1 / TP2 w panelu „Modele". Model trafia tam wg liczby KART w wariancie:
+# 02.11: TP1 / TP2 tabs in the „Models" panel. A model lands there by the number of CARDS in the placement:
 # 1 karta -> TP1, 2+ kart -> TP2. Kategorie niemodelowe (Grafika/Muzyka/Pomocnicze) zostaja.
 KAT_TP1, KAT_TP2 = "TP1", "TP2"
 KATEGORIE_TP = (KAT_TP1, KAT_TP2)
@@ -80,9 +80,9 @@ def _path(path: Path | None, default: Path) -> Path:
 # ---------- odczyt / zapis ----------
 
 def load(path: Path | None = None) -> list[dict]:
-    """Czyta models.yaml (z cache'em po mtime — wywoływane co 250 ms z /ws).
+    """Reads models.yaml (cached by mtime — called every 250 ms from /ws).
 
-    Zwrota OBIEKTY Z CACHE — wolno je mutowac; do pracy uzywaj load_copy()."""
+    Returns OBJECTS FROM CACHE — may be mutated; use load_copy() for work."""
     global _load_cache
     p = _path(path, MODELS_PATH)
     if not p.is_file():
@@ -122,7 +122,7 @@ def slug(text: str) -> str:
 
 
 def normalize(m: dict) -> dict:
-    """Uzupełnia brakujące pola — rejestr zawsze ma ten sam kształt (teze migracja llmpy -> launcher)."""
+    """Fills missing fields — the registry always has the same shape (also the llmpy -> launcher migration)."""
     kind = m.get("kind") or "cmd"
     profile = m.get("profile")
     port = m.get("port")
@@ -149,7 +149,7 @@ def normalize(m: dict) -> dict:
         "ram_gb": _num(m.get("ram_gb"), 0),
         "placements": _clean_placements(m.get("placements")),
         "enabled": bool(m.get("enabled", True)),
-        # 02.11: 0 = nieprzypięty (sortuje się), 1 = PRZYPIĘTY na pozycji na liście (patrz apply_pin).
+        # 02.11: 0 = unpinned (sorts), 1 = PINNED at its position in the list (see apply_pin).
         "pin": 1 if _int(m.get("pin"), 0) else 0,
     }
     if kind == "llmpy":  # stary rodzaj: ten sam mechanizm co launcher (llm.py = launcher profilu)
@@ -198,14 +198,14 @@ def _clean_placements(val) -> list[dict]:
     return out
 
 
-# ---------- zakładki TP1 / TP2 + przypinanie (02.11) ----------
+# ---------- TP1 / TP2 tabs + pinning (02.11) ----------
 
 def tp_kategoria(m: dict) -> str | None:
-    """Zakładka modelu wg liczby kart: 1 karta -> TP1, 2+ kart -> TP2.
+    """Model tab by number of cards: 1 card -> TP1, 2+ cards -> TP2.
 
-    Model, który ma warianty jednokartowe WYŁĄCZNIE, jest TP1; jeśli ma choć jeden wariant
-    na 2+ karty, jest TP2 (tam realnie startuje na dwóch kartach). Modele bez wariantów
-    (np. Grafika/Muzyka/Pomocnicze) nie mają zakładki TP -> zostają w swojej kategorii."""
+    A model that ONLY has single-card variants is TP1; if it has at least one 2+ card variant,
+    it is TP2 (that is where it really starts on two cards). Models without variants
+    (e.g. Graphics / Music / Helper) have no TP tab -> stay in their category."""
     plac = m.get("placements") or []
     if not plac:
         return None
@@ -215,19 +215,19 @@ def tp_kategoria(m: dict) -> str | None:
 
 
 def kategoria_docelowa(m: dict) -> str:
-    """Kategoria, do której model trafia po sortowaniu: TP1/TP2 dla modeli z wariantami,
-    inaczej kategoria zapisana w wpisie."""
+    """The category the model lands in after sorting: TP1/TP2 for models with variants,
+    otherwise the category saved in the entry."""
     return tp_kategoria(m) or str(m.get("category") or DEFAULT_CATEGORY)
 
 
 def apply_pin(model_id: str, pin: bool, models_path: Path | None = None,
               layout_path: Path | None = None) -> dict:
-    """PUT /api/models/{id}/pin — przypiąć lub odpiąć model na jego pozycji na liście.
+    """PUT /api/models/{id}/pin — pin or unpin a model at its position in the list.
 
-    PRZYPIĘCIE: model trafia do zakładki TP1/TP2 (wg kart), dostaje pin=1 i `order` równe
-    swojej TERAZNIEJSZEJ pozycji w tej zakładce — dzięki temu sort (order, id) nie przesuwa
-    go względem sąsiadów. ODPIĘCIE: pin=0 — model znowu sortuje się normalnie.
-    Zwraca {id, pin, category, order}.
+    PINNING: the model lands in the TP1/TP2 tab (by cards), gets pin=1 and `order` equal to
+    its CURRENT position in that tab — this way the sort (order, id) does not move it
+    relative to its neighbors. UNPINNING: pin=0 — the model sorts normally again.
+    Returns {id, pin, category, order}.
     """
     models = load(models_path)
     if not any(m["id"] == model_id for m in models):
@@ -265,8 +265,8 @@ def load_layout(path: Path | None = None) -> dict:
 
 
 def normalize_sizes(val) -> dict:
-    """Rozmiary paneli (sciezka ODCZYTU — tolerancyjna: zly wpis po prostu odpuszczamy, UI dostanie domyslny).
-    §13: wpisy paneli USUNIETYCH (np. 'orphans') sa pomijane — layout sam sie czyści przy odczycie."""
+    """Panel sizes (read path — tolerant: a bad entry is simply dropped, the UI gets the default).
+    §13: panels that were REMOVED (e.g. 'orphans') are skipped — the layout cleans itself on read."""
     out = {}
     if isinstance(val, dict):
         for pid, s in val.items():
@@ -352,9 +352,9 @@ def normalize_layout(data: dict) -> dict:
 
 
 def pelny_layout(layout: dict) -> dict:
-    """Layout dla UI: nowe panele dopisane na KONIEC — układ użytkownika bez zmian.
-    §13: `okna` (pozycje/rozmiary w pikselach) — brak wpisu = uklad domyslny (UI i tak przycina
-    do biezacej szerokosci kontenera). `sizes` (§12b) zostaja dla starego UI."""
+    """Layout for the UI: new panels appended at the END — the user layout unchanged.
+    §13: `okna` (positions/sizes in pixels) — missing entry = default layout (the UI still clamps
+    to the current container width). `sizes` (§12b) stay for the old UI."""
     out = dict(layout or {})
     panels = list(out.get("panels") or PANELS) + [p for p in PANELS if p not in (out.get("panels") or [])]
     out["panels"] = panels
@@ -465,8 +465,8 @@ def apply_order(body: dict, models_path: Path | None = None, layout_path: Path |
         for i, mid in enumerate(ids):
             m = kopie[mid]
             m["category"], m["order"] = str(cat), i
-            # 02.11: przeciągnięcie PRZYPIĘTEGO modelu go odpina — inaczej trzymałby stare
-            # `order` i wracał na starą pozycję przy najbliższym renderze.
+            # 02.11: dragging a PINNED model unpins it — otherwise it would keep its old
+            # `order` and return to the old position at the next render.
             m["pin"] = 0
             if mid not in przypisane_ids:
                 przypisane_ids.add(mid)
@@ -499,7 +499,7 @@ def categories(models: list[dict] | None = None) -> list[str]:
 # ---------- importer profili z llm.py ----------
 
 def load_llmpy_profiles(path: Path = LLMPY_PATH) -> dict:
-    """Importuje moduł llm.py (ma `if __name__ == "__main__"`, więc nic nie startuje)."""
+    """Imports the llm.py module (it has `if __name__ == "__main__"`, so nothing starts)."""
     spec = importlib.util.spec_from_file_location("llm_llmpy", str(path))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -534,7 +534,7 @@ def entry_from_profile(key: str, profile: dict) -> dict:
 
 
 def import_llmpy(models_path: Path | None = None, llmpy_path: Path | None = None) -> list[dict]:
-    """Dopisuje profile z llm.py do rejestru; istniejące wpisy zostają nietknięte."""
+    """Appends profiles from llm.py to the registry; existing entries are left untouched."""
     models_path = Path(models_path or MODELS_PATH)
     models = load(models_path)
     known = {m["id"] for m in models}

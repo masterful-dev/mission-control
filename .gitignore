@@ -10,3 +10,6 @@ instalator/linux/robocze/
 wydanie/
 instalator/windows/robocze/
 ustawienia.json.test
+
+# Hermes session logs
+DZIENNIK*.md

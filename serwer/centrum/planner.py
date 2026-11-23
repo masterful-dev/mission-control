@@ -17,10 +17,10 @@ def _placement_of(model: dict, index: int = 0) -> dict | None:
 
 
 def free_vram(gpu_state: list[dict], running: list, margin: int = MARGIN_MB) -> dict[int, int]:
-    """Wolne VRAM karty = total - max(zmierzone, rezerwacje modeli) - margines.
+    """Free card VRAM = total - max(measured, model reservations) - margin.
 
-    02.11: margines z config.yaml (vram_margin_mb, margines_vram() w energia) — Flash-Next 125B TP2
-    nie startował domyślnie (1 GiB marginesu zacinał ~36 MB niedoboru przy realnym miejscu na karcie)."""
+    02.11: margin from config.yaml (vram_margin_mb, margines_vram() in energia) — Flash-Next 125B TP2
+    did not start by default (a 1 GiB margin blocked ~36 MB shortfall despite real room on the card)."""
     measured: dict[int, int] = {}
     total: dict[int, int] = {}
     for g in gpu_state:
@@ -52,7 +52,7 @@ def _resolve_running(entry):
 
 
 def _score(free: dict[int, int], placement: dict) -> int:
-    """Po starcie: ile zostaje na najbardziej wolnej karcie (im więcej, tym lepiej)."""
+    """After start: how much is left on the furthest-from-full card (more = better)."""
     f = dict(free)
     for gpu, mb in zip(placement["gpus"], placement["vram"]):
         f[gpu] = f.get(gpu, 0) - int(mb)
@@ -100,7 +100,7 @@ def plan(models: list[dict], running: list, gpu_state: list[dict], ram_free: flo
             owner_id, owner = port_owner[int(port)]
             out[mid] = {"can_start": False, "placement": None,
                         "reason": f"port {port} zajęty przez {owner}",
-                        "switch_from": owner_id}  # UI: „Przełącz" = zatrzymaj tamten model i postaw ten
+                        "switch_from": owner_id}  # UI: "Switch" = stop that model and start this one
             continue
 
         if ram_free < ram_gb:
@@ -117,7 +117,7 @@ def plan(models: list[dict], running: list, gpu_state: list[dict], ram_free: flo
                 first_reason = first_reason or why
                 continue
             score = _score(free, placement)
-            # remis: wyżej polożona karta (GPU1 przed GPU0) — druga karta zostaje cala wolna
+            # tie: higher-placed card (GPU1 before GPU0) — the second card stays fully free
             key = (score, sorted(placement["gpus"], reverse=True))
             if best is None or key > best_score:
                 best, best_score = placement, key
@@ -133,13 +133,13 @@ def plan(models: list[dict], running: list, gpu_state: list[dict], ram_free: flo
 def plan_przelaczenia(model: dict, running: list, gpu_state: list[dict], ram_free: float,
                       zmierzone: dict | None = None, wymus: tuple = (), zmierzony_ram: dict | None = None,
                       margin: int = MARGIN_MB) -> dict:
-    """15.10: model nie mieści się, bo zajmują port/karty inne modele Centrum -> które zatrzymać, żeby wystartował.
+    """15.10: model does not fit because other Centrum models occupy the port/cards -> which to stop so it starts.
 
-    Najpierw tylko właściciel portu (+ `wymus`), potem także modele na kartach, których ten model potrzebuje.
-    Zatrzymywane modele nie liczą się ani jako rezerwacja, ani jako zmierzony VRAM (`zmierzone` = {id: {gpu: MiB}}),
-    więc decyzja nie czeka, aż NVML pokaże zwolnioną pamięć. Wynik: decyzja plan() + `zatrzymaj` (lista id).
-    16.10: zwalniany RAM = zmierzony (`zmierzony_ram` = {id: GB}), nie wpis `ram_gb` — Ornith TP2 ma wpis 2 GB,
-    a trzyma 20 GB, więc Strata (47 GB) wychodziła „za mało RAM” i PRZEŁĄCZ znikał."""
+    First only the port owner (+ `wymus`), then also models on the cards this model needs.
+    Models being stopped count neither as a reservation nor as measured VRAM (`zmierzone` = {id: {gpu: MiB}}),
+    so the decision does not wait for NVML to show the released memory. Result: plan() + `zatrzymaj` (id list).
+    16.10: freed RAM = measured (`zmierzony_ram` = {id: GB}), not the `ram_gb` entry — Ornith TP2 has a 2 GB entry,
+    yet holds 20 GB, so Strata (47 GB) reported "not enough RAM" and the SWITCH vanished."""
     mid = model.get("id")
     zmierzone = zmierzone or {}
     zmierzony_ram = zmierzony_ram or {}
@@ -176,7 +176,7 @@ def plan_przelaczenia(model: dict, running: list, gpu_state: list[dict], ram_fre
             nazwy = ", ".join(wpisy[z][0].get("name") or z for z in zestaw)
             return {"can_start": False, "placement": d.get("placement"), "zatrzymaj": zestaw,
                     "switch_from": zestaw[0], "reason": f"PRZEŁĄCZ zatrzyma: {nazwy}"}
-    if proby:   # prawdziwy powód (np. RAM / obcy proces na karcie) zamiast mylącego „port zajęty”
+    if proby:   # the actual reason (e.g. RAM / foreign process on a card) instead of the misleading "port busy"
         return {**baza, "reason": f"nawet po zatrzymaniu modeli: {d.get('reason') or baza.get('reason')}",
                 "zatrzymaj": []}
     return {**baza, "zatrzymaj": []}

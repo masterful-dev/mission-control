@@ -53,7 +53,7 @@ def current_state() -> dict:
     for m in models:
         d = decisions.get(m["id"], {})
         entry = state.get(m["id"]) or {}
-        if not d.get("can_start") and not entry:   # 15.10: zajete przez inne modele -> PRZEŁĄCZ (kogo zatrzyma)
+        if not d.get("can_start") and not entry:   # 15.10: taken by other models -> SWITCH (whom to stop)
             d = planner.plan_przelaczenia(m, running, gpus, ram["available_gb"], zmierzone, zmierzony_ram=ram_modeli,
                                           margin=margin)
         m["zatrzymaj"] = d.get("zatrzymaj") or []
@@ -128,8 +128,8 @@ def api_models_order(body: dict) -> dict:
 
 @app.put("/api/models/{model_id}/pin")
 def api_model_pin(model_id: str, body: dict) -> dict:
-    """02.11: przypiąć/odpiąć model na pozycji na liście (UI: prawy przycisk myszy).
-    Body {pin: 1|0|true|false}. 1 = model nie przesuwa się przy sortowaniu."""
+    """02.11: pin/unpin a model at its position in the list (UI: right-click).
+    Body {pin: 1|0|true|false}. 1 = model does not move on sort."""
     raw = (body or {}).get("pin", 1)
     if isinstance(raw, str) and raw.strip().lower() in ("0", "false", "off", "no"):
         raw = 0
@@ -348,7 +348,7 @@ def api_energia_config(body: dict | None = None) -> dict:
         raise HTTPException(400, str(exc)) from exc
     if miernik:
         miernik._sprawnosc = cfg["psu_sprawnosc"]
-        miernik._cfg, miernik._spr_t = cfg, miernik.monotonic()   # nowa moc urządzeń od razu
+        miernik._cfg, miernik._spr_t = cfg, miernik.monotonic()   # new device power right away
     return cfg
 
 

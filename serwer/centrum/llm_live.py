@@ -1,10 +1,10 @@
-"""Panel „Model LLM — zapytania”: to samo, co pokazuje okno launchera (~/ai/serwer/llm.py).
+"""Panel „Model LLM — queries”: the same as what the launcher window shows (~/ai/serwer/llm.py).
 
-Źródła (bez nowego ruchu do modelu):
-- `/_live` proxy launchera na publicznym porcie modelu — bieżące zapytanie (etap, typ, wejście/wyjście,
-  prefill, prędkość teraz/średnio), kontekst, ostatnie zapytania, sumy sesji;
-- `historia-<port>.jsonl` (ten sam katalog co plik stanu, zerowany przy starcie proxy) — średnie od startu
-  serwera: generacja (TG) i czytanie promptu (PP) ważone tokenami, wyniki OK / błąd / przerwane.
+Sources (without new traffic to the model):
+- launcher proxy `/_live` on the model's public port — current query (stage, type, input/output,
+  prefill, speed now/average), context, last queries, session sums;
+- `historia-<port>.jsonl` (same dir as the state file, reset on proxy start) — since server start:
+  generation (TG) and prompt reading (PP) weighted by tokens, results OK / error / interrupted.
 """
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from pathlib import Path
 
 from . import procs
 
-LIVE_TIMEOUT = 0.25      # s — producent stanu tyka co 250 ms, wiszące proxy nie może go zatrzymać
-PRZERWA_PO_BLEDZIE = 2.0  # s — proxy nie odpowiada: kolejna próba dopiero po tej przerwie
+LIVE_TIMEOUT = 0.25      # s — state producer ticks every 250 ms, a hung proxy cannot stall it
+PRZERWA_PO_BLEDZIE = 2.0  # s — proxy not responding: next attempt only after this pause
 HIST_W_PANELU = 30
 
 _blad_do: dict[int, float] = {}
@@ -61,7 +61,7 @@ def _dolicz(acc: dict, r: dict) -> None:
 
 
 def statystyki_historii(path: Path) -> dict | None:
-    """Średnie sesji z historia-<port>.jsonl, czytane przyrostowo (plik zerowany przy starcie proxy)."""
+    """Session averages from historia-<port>.jsonl, read incrementally (file reset on proxy start)."""
     try:
         st = os.stat(path)
     except OSError:
@@ -127,7 +127,7 @@ def stan_modelu(model: dict, live: dict | None) -> dict:
     ctx = live.get("ctx") or 0
     ctx_main = live.get("ctx_main") or 0
     tot = live.get("tot") or {}
-    if not acc:   # brak pliku historii — średnie z ostatnich zapytań w /_live
+    if not acc:   # no history file — averages from recent queries in /_live
         acc = _puste()
         for r in live.get("hist") or []:
             _dolicz(acc, r)
@@ -156,10 +156,10 @@ def launcher_llm(model: dict) -> bool:
     return model.get("kind") == "launcher" and Path(str(model.get("script") or "")).name.startswith("llm")
 
 
-# ---------------- WARP (silnik własny, kind=cmd): rozliczenie z logu serwera ----------------
-# Serwer WARP pisze w swoim logu jedną linię JSON na zapytanie:
+# ---------------- WARP (own engine, kind=cmd): settlement from the server log ----------------
+# The WARP server writes one JSON line per query to its log:
 #   {"czas","id":"chatcmpl-warp-N","prompt","z_pamieci","prompt_ms","wyj","tps","koniec","przerwane","kolejka_ms"}
-# Z tego liczymy to samo, co panel dostaje z proxy /_live (TG, PP, liczba zapytań, tokeny, tabela ostatnich zapytań).
+# From this we compute the same as what the panel gets from the /_live proxy (TG, PP, query count, tokens, last-queries table).
 _warp_logi: dict[str, dict] = {}
 _warp_w_toku: dict[str, float] = {}
 

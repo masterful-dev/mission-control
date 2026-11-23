@@ -46,7 +46,7 @@ RUNNING_STATUSES = ("starting", "ready", "stopping")
 STAN_TTL = 0.5        # pliki stanu llm.py — odczytywane co tick /ws
 CHILDREN_TTL = 1.0
 STAN_START_WINDOW_S = 120.0  # PID z pliku stanu musi startowac w ciagu 120 s od 'start' (inaczej to obcy proces po restarcie)
-STAN_CLOCK_TOLERANCE_S = 60.0  # ile najwyzej WCZESNIEJ niz 'start' mogl wystartowac proces (opóxnienie zapisu stanu)
+STAN_CLOCK_TOLERANCE_S = 60.0  # how much EARLIER than 'start' the process may have started (state-write delay)
 BOOT_GRACE_S = 90.0   # wpis starszy niz uptime systemu = stan sprzed rebootu (PID-y sa juz inne)
 
 _lock = threading.Lock()
@@ -59,7 +59,7 @@ PPID_MIN_REBUILD_S = 1.0   # minimalny odstep przed PRZYMUSENIM odswiezeniem drz
 
 
 def _cache_put(store: dict, key, value) -> None:
-    """Zapis do cache'a PID-owego z gornym limitem (inak dict rósłby latami)."""
+    """Write to the PID cache with an upper limit (otherwise the dict would grow for years)."""
     if len(store) >= CACHE_MAX:
         store.clear()
     store[key] = value
@@ -291,7 +291,7 @@ def stan_match_keys(model: dict) -> dict:
 
 
 def stan_matches(model: dict, data: dict) -> bool:
-    """Na wspolnym porcie (8033, 8190) model 'działa' tylko jesli profil/tryb w pliku stanu sie zgadza."""
+    """On a shared port (8033, 8190) a model 'runs' only if the profile/mode in the state file matches."""
     for key, val in stan_match_keys(model).items():
         got = data.get(key)
         if str(got) != str(val) and not (isinstance(got, (int, float)) and str(val) == str(int(got))):
@@ -319,11 +319,11 @@ def launcher_names(model: dict) -> set[str]:
 
 
 def stan_pid_to_model(model: dict, data: dict) -> bool:
-    """Czy PID z pliku stanu to NAPRAWDĘ ten launcher (nie obcy proces po restarcie komputera).
+    """Is the PID in the state file really this launcher (not a foreign process after a computer restart).
 
-    Nazwa skryptu launchera w cmdline (teze argv0 wrappera `bash -c "$@" ... llm`) ALBO proces
-    uruchomiony NIE WCZESNIEJ niz zapisany 'start' (okno tolerancji tylko na opóxnienie zegara).
-    Proces utworzony PRZED 'start' to co najwyzej proces sprzed rebootu — nie ten model."""
+    Launcher script name in cmdline (also argv0 of the wrapper `bash -c "$@" ... llm`) OR a process
+    started NOT EARLIER than the saved 'start' (tolerance window only for clock delay).
+    A process created BEFORE 'start' is at best a pre-reboot process — not this model."""
     names = launcher_names(model)
     pid = int(data.get("pid") or 0)
     try:
@@ -736,7 +736,7 @@ def stop(model_id: str, force: bool = False) -> dict:
         entry["status"] = "stopping"
         state[model_id] = entry
         save_state(state)
-    # 16.10: dalsza czesc POZA blokada — `--stop` launchera trwa do 150 s, a w tym czasie START/PRZEŁĄCZ
+    # 16.10: the rest OUTSIDE the lock — launcher `--stop` takes up to 150 s, and during that time START/SWITCH
     # innego modelu ma przejsc od razu (zlecenie zatrzyma ten model SIGKILL-em i laduje nowy bez czekania)
     if (model or {}).get("kind") in ("launcher", "llmpy") or entry.get("kind") in ("launcher", "llmpy"):
         if model:
@@ -920,7 +920,7 @@ def switch(from_id: str, to_id: str) -> dict:
 
 
 # ---------- przelaczanie bez czekania (15.10) ----------
-# Klik START / PRZEŁĄCZ: stan zapisany od razu (stary model „stopping”, nowy „starting”), a JEDEN watek w tle
+# START / SWITCH click: state saved right away (old model "stopping", new "starting"), and ONE thread in the background
 # wykonuje zlecenia po kolei: stary model SIGKILL (serwery inferencji nie maja czego zapisywac), czekanie tylko
 # na zwolnienie jego VRAM (zwykle < 2 s), natychmiastowy start nowego. Blad startu = status „failed” z opisem.
 SZYBKI_VRAM_S = 15.0

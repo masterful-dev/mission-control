@@ -65,12 +65,11 @@ Bundled third-party components keep their own licences: [THIRD-PARTY-NOTICES.txt
 
 ## Repository layout
 
-| Katalog | Zawartość |
+| Directory | Contents |
 |---|---|
-| `program/` | okno: C++20, SDL3, OpenGL 3.3, Dear ImGui (`program/README.md`) |
-| `serwer/` | usługa danych w Pythonie 3.12 (`centrum/`), jej biblioteki (`biblioteki-py312/`) |
-| `instalator/` | pakiety instalacyjne, ikona, warunki korzystania (`instalator/README.md`) |
-| `PLAN-WLASNE-SKLADNIKI.md` | jak zastąpić cudze składniki własnymi |
+| `program/` | the window: C++20, SDL3, OpenGL 3.3, Dear ImGui (`program/README.md`) |
+| `serwer/` | Python 3.12 data service (`centrum/`), its libraries (`biblioteki-py312/`) |
+| `instalator/` | install packages, icon, terms of use (`instalator/README.md`) |
 
 Build: `program/buduj.sh` (Linux), `program/buduj-windows.sh` (Windows from Linux),
 `instalator/linux/zbuduj.sh`, `instalator/windows/zbuduj-instalator.sh`.

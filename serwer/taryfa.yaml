@@ -1,6 +1,6 @@
-# Strefy taryfowe do raportu energii (Centrum Misji). Godziny lokalne, przedział [od, do), format HH:MM-HH:MM.
-# Cena w zł za kWh (brutto, z opłatami zmiennymi) — puste (null) = raport pokaże tylko kWh w strefie, bez kosztu.
-# Domyślnie G12: tańsza strefa 22:00-06:00 i 13:00-15:00, droższa reszta doby. Sprawdź godziny na swojej umowie.
+# Tariff zones for the energy report (Mission Control). Local hours, interval [from, to), format HH:MM-HH:MM.
+# Price in PLN per kWh (gross, with variable fees) — empty (null) = the report will show only the kWh in the zone, no cost.
+# Default G12: cheaper zone 22:00-06:00 and 13:00-15:00, the rest of the day is more expensive. Check the hours in your contract.
 nazwa: G12
 strefy:
   - nazwa: nocna (tańsza)
@@ -9,5 +9,5 @@ strefy:
   - nazwa: dzienna (droższa)
     godziny: reszta
     cena: null
-# G12w: weekendy cała doba w tańszej strefie — wpisz tu nazwę strefy, np. "nocna (tańsza)"; null = jak w tygodniu
+# G12w: weekends whole day in the cheaper zone — enter the zone name here, e.g. "nocna (tańsza)"; null = as on weekdays
 weekend_cala_doba: null

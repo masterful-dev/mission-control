@@ -1,9 +1,9 @@
-"""Postęp ładowania modelu NA ŻYWO (15.10).
+"""Live model load progress (15.10).
 
-VRAM rośnie dopiero na końcu ładowania (np. Strata: ~6,5 min wczytuje 40 GB do RAM, potem w kilka sekund
-17,7 GB na kartę), więc sam pasek VRAM skacze z 1% na 86%. Tu liczymy to, co proces modelu faktycznie
-wczytał: max(odczyt przez read() [rchar], odczyt z dysku [read_bytes], pamięć RAM procesu [RSS]) z całego
-drzewa procesu (bez proxy launchera) + jego VRAM wg NVML. Rozmiar plików modelu z profilu llm*.py (`pliki`).
+VRAM only grows at the very end of loading (e.g. Strata: ~6.5 min loads 40 GB into RAM, then in a few seconds
+17.7 GB onto the card), so the VRAM bar alone jumps from 1% to 86%. Here we count what the model process actually
+loaded: max(read() [rchar], disk read [read_bytes], process RAM [RSS]) across the whole
+process tree (without the launcher proxy) + its VRAM per NVML. Model file size from the llm*.py profile (`pliki`).
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ def _rozmiar_sciezki(p: str) -> int:
 
 
 def rozmiar_modelu(model: dict) -> int | None:
-    """Suma plików wag (bajty) z profilu llm*.py modelu; None = nieznany (inny launcher)."""
+    """Sum of weight file sizes (bytes) from the model's llm*.py profile; None = unknown (other launcher)."""
     skrypt = str(model.get("script") or "")
     if not Path(skrypt).name.startswith("llm"):
         return None

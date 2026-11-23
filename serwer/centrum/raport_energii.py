@@ -1,9 +1,9 @@
-"""Raport zużycia energii za wybrany okres (strona HTML do druku/PDF + Markdown do H:\\!raporty).
+"""Energy usage report for a chosen period (HTML page for print/PDF + Markdown for H:\\!raporty).
 
-Dane z energia.db (wiersz = minuta): wh_gniazdko (oba zasilacze, przez swoje sprawności), wh_dc,
-gpu0_wh/gpu1_wh (V100 na osobnym zasilaczu), sekund (faktycznie zmierzony czas). Przerwa = brak wierszy.
-Raport podaje dokładne okresy pracy (od–do co do minuty), zużycie w każdej godzinie i podział na strefy
-taryfowe z taryfa.yaml (np. G12 dzień/noc) z kosztem, gdy wpisano ceny.
+Data from energia.db (row = minute): wh_gniazdko (both PSUs, through their own efficiencies), wh_dc,
+gpu0_wh/gpu1_wh (V100 on a separate PSU), seconds (actually measured time). Gap = missing rows.
+The report gives exact work periods (from–to per minute), usage in each hour and the split into tariff
+zones from taryfa.yaml (e.g. G12 day/night) with cost, when prices are entered.
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from . import energia
 
 RAPORTY_DIR = Path("/mnt/H/!raporty")
 TARYFA_PATH = energia.BASE_DIR / "taryfa.yaml"
-PRZERWA_S = 120          # dłuższa luka między minutami = nowy okres pracy
+PRZERWA_S = 120          # longer gap between minutes = new work period
 
 
 def okres_domyslny(dzis: date | None = None) -> tuple[str, str]:
@@ -64,7 +64,7 @@ def strefa(ts: int, taryfa: dict) -> str:
             reszta = reszta or s["nazwa"]
             continue
         for a, b in s["przedzialy"]:
-            if (a <= m < b) if a < b else (m >= a or m < b):     # przedział przez północ, np. 22:00-06:00
+            if (a <= m < b) if a < b else (m >= a or m < b):     # interval across midnight, e.g. 22:00-06:00
                 return s["nazwa"]
     return reszta or taryfa["strefy"][-1]["nazwa"]
 

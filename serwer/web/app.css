@@ -1,6 +1,6 @@
 [hidden] { display: none !important; }
-/* CENTRUM MISJI — HUD centrum dowodzenia (SPEC §11c/§11d): granat + cyjan + pomarańcz.
-   Zero bibliotek, zero CDN. */
+/* CENTRUM MISJI — command center HUD (SPEC §11c/§11d): navy + cyan + orange.
+   Zero libraries, zero CDN. */
 :root {
   --bg: #020812;
   --glow1: #0b2a4a;
@@ -35,7 +35,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; }
 svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .lbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--orange); }
 
-/* ---------- górny pasek ---------- */
+/* ---------- top bar ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 16px; height: 52px; padding: 0 16px;
@@ -58,7 +58,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .kropka.on { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
 .kropka.off { background: var(--bad); box-shadow: 0 0 10px var(--bad); }
 
-/* ---------- układ paneli (§13: SWOBODNE okna w pikselach — kontener relative, panele absolute) ---------- */
+/* ---------- panel layout (§13: FREE windows in pixels — relative container, absolute panels) ---------- */
 .grid { position: relative; display: block; min-height: calc(100vh - 52px);
   padding: 12px; overflow: visible; }
 .panel { position: absolute; left: 12px; top: 12px; width: 420px; height: var(--h, 300px);
@@ -72,7 +72,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
   background-size: 24px 24px;
   touch-action: none; user-select: none;
 }
-/* narożniki-wsporniki HUD (wewnatrz panelu — .panel ma overflow: hidden) */
+/* HUD corner brackets (inside the panel — .panel has overflow: hidden) */
 .panel::before, .panel::after { content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none; z-index: 4; }
 .panel::before { top: 0; left: 0; border-top: 2px solid var(--orange); border-left: 2px solid var(--orange); }
 .panel::after { bottom: 0; right: 0; border-bottom: 2px solid var(--orange); border-right: 2px solid var(--orange); }
@@ -82,14 +82,14 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
   text-shadow: 0 0 10px rgba(255,138,31,.4); flex: 1; min-width: 0; }
 .p-head .grip { color: var(--mut); font-size: 13px; letter-spacing: 0; }
 .p-head .sub { font-size: 11px; color: var(--mut); font-weight: 600; }
-.p-body { flex: 1; min-height: 0; overflow: auto; }   /* tresc przewija sie WEWNĄTRZ panelu */
+.p-body { flex: 1; min-height: 0; overflow: auto; }   /* content scrolls INSIDE the panel */
 .panel.drag-src { opacity: .45; }
 .panel.moving { opacity: .82; z-index: 12; cursor: grabbing;
   outline: 1px dashed var(--cyan); outline-offset: 2px; box-shadow: 0 0 22px rgba(56,214,255,.45), inset 0 0 24px rgba(11,42,74,.5); }
 .grid.drop-line { outline: 1px dashed var(--cyan); }
 
-/* uchwyt rozmiaru (§13) — pomarańczowy narożnik HUD W PRAWYM DOLNYM ROGU (wewnatrz panelu,
-   bo .panel ma overflow: hidden); dwuklik = rozmiar domyślny */
+/* resize handle (§13) — orange HUD corner in the BOTTOM-RIGHT (inside the panel,
+   because .panel has overflow: hidden); double-click = default size */
 .p-resize { position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; z-index: 6;
   cursor: nwse-resize; touch-action: none;
   border-right: 3px solid var(--orange); border-bottom: 3px solid var(--orange);
@@ -100,7 +100,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 /* ---------- GPU: wszystkie karty w jednym panelu (tabela + jeden wykres, 15.10) ---------- */
 .p-body:has(> .gpus) { display: flex; flex-direction: column; }
 .gpus { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
-/* diagram: pierścień na kartę (GPU0 zewnętrzny), łuk = % VRAM, płynnie co klatkę /ws (250 ms) */
+/* diagram: one ring per card (GPU0 outermost), arc = % VRAM, fluid per /ws frame (250 ms) */
 .gk { display: flex; align-items: center; gap: 16px; flex: none; }
 .gk-svg { width: 172px; height: 172px; flex: none; transform: rotate(-90deg); }
 .gk-svg text { transform: rotate(90deg); transform-origin: 100px 100px; }
@@ -116,7 +116,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .gk-gb { font-size: 12.5px; white-space: nowrap; }
 .gk-pct { font-size: 20px; color: var(--txt); text-align: right; min-width: 3.2em; }
 .gk-w { font-size: 12px; color: var(--mut); text-align: right; white-space: nowrap; }
-/* temperatury w środku wiersza karty — duże, na żywo (odczyt NVML co 0,2 s) */
+/* temperatures in the middle of the card row — large, live (NVML read every 0.2 s) */
 .gk-temp { display: flex; align-items: baseline; justify-content: center; gap: 6px; white-space: nowrap; min-width: 0; }
 .gk-tl { font-size: 9.5px; letter-spacing: .12em; color: var(--mut); }
 .gk-hl { margin-left: 10px; }
@@ -174,7 +174,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .llm-ctx { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
 .llm-ctx .bar { margin: 0; }
 .llm-ctx .num { font-size: 11.5px; white-space: nowrap; }
-/* karta modelu: postęp ładowania na żywo (wczytane bajty / RAM / VRAM procesu) */
+/* model card: live load progress (bytes loaded / RAM / process VRAM) */
 .m-postep { display: grid; grid-template-columns: minmax(80px, 220px) 1fr; align-items: center; gap: 10px;
   font-size: 11.5px; color: var(--amber); padding: 2px 4px 0; }
 .m-postep .bar { margin: 0; }
@@ -191,7 +191,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .w-bad { color: var(--bad); }
 .lt-pusto { font-size: 12px; padding: 6px 4px; }
 
-/* ---------- wiersze procesów ---------- */
+/* ---------- process rows ---------- */
 .proc { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 7px;
   border-radius: 6px; background: rgba(12,32,58,.75); border: 1px solid rgba(26,77,122,.5); }
 .proc .pid { color: var(--mut); font-family: var(--mono); font-size: 11px; }
@@ -233,7 +233,7 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .cat-models { display: flex; flex-direction: column; gap: 6px; padding: 7px 8px; }
 .cat.collapsed .cat-models { display: none; }
 
-/* ---------- 02.11: menu modelu (prawy przycisk) + przypięty wiersz ---------- */
+/* ---------- 02.11: model menu (right click) + pinned row ---------- */
 .ctx-menu { position: fixed; z-index: 90; min-width: 210px; display: flex; flex-direction: column; gap: 2px;
   padding: 6px; border: 1px solid rgba(255,138,31,.45); border-radius: 9px;
   background: rgba(6,18,34,.97); box-shadow: 0 12px 30px rgba(0,0,0,.55); }
@@ -283,12 +283,12 @@ svg.ic { width: 15px; height: 15px; fill: currentColor; flex: none; }
 .model.failed .plakietka { background: #ffe1e1; color: #3a0606; }
 @keyframes glowpulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.16); } }
 
-/* przypięty model (pin) — NA KOŃCU bloku .model.*, żeby nie przegrywało kolejnością
-   z .model.ready / .starting / .stopping / .failed (te ustawiają border i box-shadow) */
+/* pinned model (pin) — AT THE END of the .model.* block, so it does not lose in order
+   to .model.ready / .starting / .stopping / .failed (those set border and box-shadow) */
 .model.pinned { border-color: rgba(255,138,31,.85) !important;
   box-shadow: inset 4px 0 0 var(--orange) !important; }
 
-/* ---------- sieroty (§13: lista procesów w modalu „ZWOLNIJ GPU n”) ---------- */
+/* ---------- orphans (§13: process list in the “FREE GPU n” modal) ---------- */
 .orphan-list { display: flex; flex-direction: column; gap: 5px; max-height: 46vh; overflow: auto; }
 .btn-gpu-free { border-color: var(--orange); color: var(--orange); }
 .btn-gpu-free .cnt { font-family: var(--mono); color: var(--mut); }
@@ -379,7 +379,7 @@ select:focus, input:focus { outline: 1px solid var(--cyan); box-shadow: 0 0 10px
   max-width: 70vw; box-shadow: 0 0 18px rgba(56,214,255,.35); }
 .toast.err { border-color: var(--bad); color: #ffb3b3; box-shadow: 0 0 18px rgba(255,77,77,.35); }
 
-/* ---------- wąskie okno (< 900 px): panele jeden pod drugim — geometrię liczy JS (waskiUklad) ---------- */
+/* ---------- narrow window (< 900 px): panels one under another — geometry computed by JS (waskiUklad) ---------- */
 @media (max-width: 1100px) {
   body { overflow: auto; }
   .grid { min-height: 0; }

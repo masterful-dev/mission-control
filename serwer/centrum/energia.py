@@ -1,8 +1,8 @@
-"""Dziennik energii (SPEC §12a): całkowanie mocy 1×/s do SQLite `energia.db`.
+"""Energy log (SPEC §12a): integrates power 1×/s into SQLite `energia.db`.
 
-Moc: PSU `corsairpsu` (strona DC) + NVML per karta; gdy brak PSU — suma GPU + RAPL (CPU)
-i oznaczenie „szacunek". Energia = Σ moc × Δt, Δt z time.monotonic() (nie zakładany 1 s).
-Osobny wątek (niezależny od WS i liczby klientów); zapis co minutę, przerwa = brak wierszy.
+Power: PSU `corsairpsu` (DC side) + NVML per card; when the PSU is missing — GPU sum + RAPL (CPU)
+and the "estimate" flag. Energy = Σ power × Δt, Δt from time.monotonic() (never assumed 1 s).
+Separate thread (independent of WS and client count); write every minute, pause = missing rows.
 """
 from __future__ import annotations
 
@@ -23,13 +23,13 @@ DB_PATH = BASE_DIR / "energia.db"
 CONFIG_PATH = BASE_DIR / "config.yaml"
 
 SPRAWNOSC_DOMYSLNA = 0.90
-# V100 (GPU0, GPU1) zasila OSOBNY zasilacz — Corsair ich nie widzi; T400 (GPU2) bierze prad ze slotu = Corsair
+# V100 (GPU0, GPU1) is powered by a SEPARATE PSU — Corsair does not see them; T400 (GPU2) draws from the slot = Corsair
 GPU_OSOBNY_PSU_DOMYSLNIE = [0, 1]
 SPRAWNOSC_MIN, SPRAWNOSC_MAX = 0.30, 1.00
-MARGIN_MB = MARGIN_MB_DOMYSLNY   # zapas VRAM planera (planner.MARGIN_MB = 1024); config: vram_margin_mb
-MAX_DT = 10.0        # s — dłuższa przerwa w próbkowaniu (stall wątku) nie jest całkowana
-MAX_GPU = 8          # kolumn gpuN_wh w tabeli minuty
-URZADZENIA_MAKS_W = 5000.0   # sanity: łączna moc urządzeń z gniazdka
+MARGIN_MB = MARGIN_MB_DOMYSLNY   # planner VRAM reserve (planner.MARGIN_MB = 1024); config: vram_margin_mb
+MAX_DT = 10.0        # s — longer sampling gap (thread stall) is not integrated
+MAX_GPU = 8          # gpuN_wh columns in the minute table
+URZADZENIA_MAKS_W = 5000.0   # sanity: total device power from the outlet
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS minuty (
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS minuty (
 """
 
 
-# ---------- config.yaml (sprawność PSU, edytowalna w UI) ----------
+# ---------- config.yaml (PSU efficiency, editable in UI) ----------
 
 def load_config(path: Path | None = None) -> dict:
     p = path or CONFIG_PATH
@@ -62,8 +62,8 @@ def _liczba(val, default: float = 0.0, lo: float = 0.0, hi: float = URZADZENIA_M
 
 
 def _norm_urzadzenia(val) -> list[dict]:
-    """Urządzenia zawsze włączone, zasilane z gniazdka poza zasilaczami komputera.
-    Każdy wpis: {nazwa, sztuk, moc_w}; `razem_w` = sztuk × moc_w."""
+    """Always-on devices, powered from the outlet outside the computer PSUs.
+    Every entry: {nazwa, sztuk, moc_w}; `razem_w` = sztuk × moc_w."""
     if isinstance(val, dict):
         val = [val]
     out = []
@@ -98,10 +98,10 @@ def _norm_config(data: dict) -> dict:
 
 
 def margines_vram() -> int:
-    """Zapas VRAM przy planowaniu startu (config.yaml: vram_margin_mb, w MiB; domyślnie 1024).
+    """VRAM reserve at startup planning (config.yaml: vram_margin_mb, in MiB; default 1024).
 
-    02.11: obniżony do 256 — Flash-Next 125B TP2 (warp-flash-tp2) potrzebował 30,8 GB, wolne
-    liczone z 1 GiB zapasu dawało „brakuje 36 MB", choć karta miała miejsce."""
+    02.11: lowered to 256 — Flash-Next 125B TP2 (warp-flash-tp2) needed 30.8 GB, the free space
+    computed from a 1 GiB reserve gave "missing 36 MB" though the card had room."""
     return int(load_config().get("vram_margin_mb") or MARGIN_MB)
 
 
@@ -123,7 +123,7 @@ def _sprawnosc(val, default: float) -> float:
 # ---------- migracja schematu (stare bazy bez urzadzenia_wh) ----------
 
 def _zapewnij_kolumne(con: sqlite3.Connection) -> bool:
-    """Dodaje kolumnę urzadzenia_wh do istniejącej bazy. True = kolumna była już."""
+    """Adds the urzadzenia_wh column to an existing DB. True = the column was already there."""
     kolumny = {r[1] for r in con.execute("PRAGMA table_info(minuty)")}
     if "urzadzenia_wh" in kolumny:
         return True
@@ -132,10 +132,10 @@ def _zapewnij_kolumne(con: sqlite3.Connection) -> bool:
     return False
 
 
-# ---------- miernik (wątek co 1 s) ----------
+# ---------- meter (thread every 1 s) ----------
 
 class Meter:
-    """Całkuje moc i zapisuje jeden wiersz na każdą pełną minutę z próbkami."""
+    """Integrates power and saves one row per full minute with samples."""
 
     def __init__(self, db_path: Path | None = None, czytaj=None,
                  monotonic=None, wall=None, sprawnosc: float | None = None,
@@ -154,10 +154,10 @@ class Meter:
         self.lock = threading.Lock()
         self._last: float | None = None
         self._min: dict | None = None
-        self.ostatni: dict | None = None     # ostatnia próbka (do UI: „TERAZ … W")
+        self.ostatni: dict | None = None     # last sample (for UI: "NOW … W")
         self._con = sqlite3.connect(str(self.db_path), timeout=5, check_same_thread=False)
         self._con.execute(SCHEMA)
-        _zapewnij_kolumne(self._con)          # baza sprzed urządzeń stałych
+        _zapewnij_kolumne(self._con)          # DB predating always-on devices
         self._con.commit()
 
     def sprawnosc(self) -> float:
@@ -165,7 +165,7 @@ class Meter:
             return self._sprawnosc
         if self._cfg_wstrz is not None:      # konfiguracja podana w konstruktorze (testy) ma pierwszenstwo
             return self._cfg_wstrz["psu_sprawnosc"]
-        now = self.monotonic()               # config.yaml czytany najwyżej raz na 30 s
+        now = self.monotonic()               # config.yaml read at most once per 30 s
         if now - self._spr_t >= 30.0:
             self._spr_t, self._cfg = now, load_config()
             self._spr_val = self._cfg["psu_sprawnosc"]
@@ -178,10 +178,10 @@ class Meter:
         return getattr(self, "_cfg", None) or _norm_config({})
 
     def krok(self, dt: float | None = None) -> dict:
-        """Jedna próbka mocy; dt = rzeczywisty odstęp (monotonic), wyliczany gdy None."""
+        """One power sample; dt = actual gap (monotonic), computed when None."""
         try:
             src = self.czytaj() or {}
-        except Exception as exc:      # telemetry/NVML w locie — pomijamy próbkę, nie cały dziennik
+        except Exception as exc:      # telemetry/NVML in flight — skip the sample, not the whole log
             print(f"[CENTRUM] blad odczytu mocy: {exc}", flush=True)
             src = {}
         now = self.monotonic()
@@ -198,7 +198,7 @@ class Meter:
         else:
             glowny, szacunek = sum(w for i, w in gpu.items() if i not in cfg["gpu_osobny_psu"]) + (rapl or 0.0), True
         dc = glowny + osobne_w
-        # urządzenia stale (monitory, audio) pobierają prąd z gniazdka bezpośrednio — nie przez PSU
+        # always-on devices (monitors, audio) draw current from the outlet directly — not through the PSU
         urzadzenia_w = cfg["urzadzenia_w"]
         gniazdko = (glowny / max(0.1, self.sprawnosc()) + osobne_w / max(0.1, cfg["psu_gpu_sprawnosc"])
                     + urzadzenia_w)
@@ -251,11 +251,11 @@ class Meter:
             except Exception as exc:
                 print(f"[CENTRUM] blad dziennika energii: {exc}", flush=True)
             stop.wait(max(0.0, interval - (self.monotonic() - t0)))
-        with self.lock:      # zamknięcie: bieżąca (niepełna) minuta nie ginie
+        with self.lock:      # close: the current (incomplete) minute does not vanish
             self._flush()
 
     def podsumowanie(self, teraz: float | None = None) -> dict:
-        """Do stanu WS: bieżąca moc + agregaty (agregaty liczone najwyżej raz na 30 s — SQL nie co tick)."""
+        """To the WS state: current power + aggregates (aggregates at most once per 30 s — SQL not on every tick)."""
         with self.lock:
             s = self.ostatni
         cfg = self.config()
@@ -371,16 +371,16 @@ def agregaty(db_path: Path | None = None, teraz: float | None = None, godziny: i
     return out
 
 
-# ---------- uzupełnienie historii: urządzenia stale włączone ----------
+# ---------- history fill-in: always-on devices ----------
 
 def uzupelnij_historie(db_path: Path | None = None, urzadzenia_w: float | None = None,
                        kopia: bool = True) -> dict:
-    """Dolicza urządzenia stale (monitory, audio) do WSZYSTKICH zapisanych minut.
+    """Adds always-on devices (monitors, audio) to ALL saved minutes.
 
-    Wiersze bez `urzadzenia_wh` (NULL) dostają tę wartość wyliczoną z faktycznie
-    zmierzonych sekund; `wh_gniazdko` rośnie o tę samą energię. Funkcja jest
-    idempotentna — drugie wywołanie nie zmienia już nic. Przed zmianą robi kopię
-    bazy (`energia.db.przed-urzadzenia-RRRRMMDD-GGMMSS`).
+    Rows without `urzadzenia_wh` (NULL) get this value computed from actually
+    measured seconds; `wh_gniazdko` grows by the same energy. The function is
+    idempotent — a second call changes nothing. Before changing, it makes a copy
+    of the DB (`energia.db.przed-urzadzenia-RRRRMMDD-GGMMSS`).
     """
     p = Path(db_path) if db_path else DB_PATH
     w = _liczba(urzadzenia_w) if urzadzenia_w is not None else load_config()["urzadzenia_w"]

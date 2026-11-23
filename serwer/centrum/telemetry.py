@@ -262,7 +262,7 @@ def _read_psu() -> dict:
 
 
 def read_network() -> dict:
-    """Przepustowość sieci = delta liczników / delta czasu (poprzedni odczyt cache'owany)."""
+    """Network throughput = delta of counters / delta time (previous read cached)."""
     io = psutil.net_io_counters()
     now, rx_mb, tx_mb = time.monotonic(), io.bytes_recv / 2**20, io.bytes_sent / 2**20
     prev = _net_cache.get("io")
@@ -285,8 +285,8 @@ RAPL_MAX = Path("/sys/class/powercap/intel-rapl:0/max_energy_range_uj")
 
 
 def read_rapl() -> dict:
-    """Zużycie CPU z RAPL: energy_uj to licznik energii (µJ) z zerowaniem przy przekroczeniu
-    max_energy_range — delta z skipem po przepełnieniu daje moc [W] z realnego Δt."""
+    """CPU usage from RAPL: energy_uj is an energy counter (µJ) that resets at overflow
+    max_energy_range — the delta with a skip after the overflow gives power [W] from real Δt."""
     def czytaj():
         try:
             e = int(RAPL_PKG.read_text().strip())
@@ -299,7 +299,7 @@ def read_rapl() -> dict:
         if prev:
             dt = now - prev[0]
             d = e - prev[1]
-            if dt > 0 and 0 <= d <= mx:      # ujemna/ogromna delta = przepełnienie licznika
+            if dt > 0 and 0 <= d <= mx:      # negative/huge delta = counter overflow
                 watt = d / 1e6 / dt
         _rapl_cache["e"] = (now, e)
         return watt
@@ -405,8 +405,8 @@ def snapshot(models: list[dict] | None = None, orphans: list[dict] | None = None
 
 
 def read_energia() -> dict:
-    """Surowe źródła mocy dla dziennika energii (§12a) — te same cache'owane odczyty co w /ws,
-    więc wątek energii co 1 s nie skanuje hwmon/NVML od nowa."""
+    """Raw power sources for the energy log (§12a) — the same cached reads as in /ws,
+    so the 1 s energy thread does not rescan hwmon/NVML from scratch."""
     psu = read_psu()
     gpus = read_gpus()
     return {
