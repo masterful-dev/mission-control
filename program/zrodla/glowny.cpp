@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   bool dok = getenv("DSH_PLUS_DOK") != nullptr; std::string adres = getenv("DSH_PLUS_CENTRUM") ? getenv("DSH_PLUS_CENTRUM") : "http://127.0.0.1:8770"; int ww = 0, wh = 0; std::string test; A.daneDir.clear();
   for (int i = 1; i < argc; i++) { std::string a = argv[i]; if (a == "--sim") A.wymusSim = true; else if (a == "--dok") dok = true; else if (a == "--adres" && i + 1 < argc) adres = argv[++i]; else if (a == "--rozmiar" && i + 2 < argc) { ww = atoi(argv[++i]); wh = atoi(argv[++i]); } else if (a == "--test" && i + 1 < argc) test = argv[++i]; else if (a == "--dane" && i + 1 < argc) A.daneDir = argv[++i]; }
   if (!dok && test.empty() && !A.wymusSim && !pierwszaKopia()) return 0;
-  SDL_SetHint(SDL_HINT_APP_ID, "centrum-misji-v2"); SDL_SetAppMetadata("Mission Control", "2.1.0", "pl.masterful.centrum-misji-v2"); if (!SDL_Init(SDL_INIT_VIDEO)) { fprintf(stderr, "SDL: %s\n", SDL_GetError()); return 1; }
+  SDL_SetHint(SDL_HINT_APP_ID, "centrum-misji-v2"); SDL_SetAppMetadata("Mission Control", "2.1.1", "pl.masterful.centrum-misji-v2"); if (!SDL_Init(SDL_INIT_VIDEO)) { fprintf(stderr, "SDL: %s\n", SDL_GetError()); return 1; }
   A.wczytaj();
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3); SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1); SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24); SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
   SDL_WindowFlags fl = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN; if (dok) fl |= SDL_WINDOW_BORDERLESS; else if (!ww) fl |= SDL_WINDOW_MAXIMIZED; if (!test.empty()) fl |= SDL_WINDOW_NOT_FOCUSABLE;

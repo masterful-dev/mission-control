@@ -306,7 +306,7 @@ async function zapiszLayout() {
     await api("PUT", "/api/layout", { panels: uklad.panels, categories: uklad.cats, okna: okr });
     poZapisie = Date.now();
   } catch (e) { toast(`Zapis układu: ${e.message}`, true); }
-  finally { czekamLayout = false; }   // czekamy na odpowiedź serwera, nie na stały timeout (AUDYT #96)
+  finally { czekamLayout = false; }   // czekamy na odpowiedź serwera, nie na stały timeout
 }
 
 /* ---------- „⟲ UŁÓŻ” (pasek górny): układ domyślny przy bieżącej szerokości, z potwierdzeniem ---------- */
@@ -1566,7 +1566,7 @@ function otworzFormularz(id) {
   otworz("modelModal");
 }
 /* pokaza warianty modelu w formularzu (select „Wariant') — przy edycji ISTNIEJACEGO modelu
-   formularz NIE moze pokazywac tylko pierwszego wariantu (AUDYT #12: zapis plaszczol
+   formularz NIE moze pokazywac tylko pierwszego wariantu (zapis plaszczol
    strata-iq3 25000+31200 do 25000+25000). Karty/VRAM edytujemy tylko wskazany wariant. */
 function pokazWarianty(f, domyślny) {
   const select = f.elements.wariant;

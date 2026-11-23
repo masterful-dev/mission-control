@@ -280,7 +280,7 @@ body::after{ /* winieta + delikatny szum */
     <span class="led" id="led" title="link"></span>
     <span id="mode" style="font-size:9px;letter-spacing:.18em;color:var(--mut)">LIVE</span>
     <span class="clock num" id="clock">--:--:--<small>LOCAL / UTC</small></span>
-    <span class="op">OPERATOR<br>WOJTEK</span>
+    <span class="op">OPERATOR<br>LOCAL</span>
   </div>
 </header>
 
@@ -483,7 +483,7 @@ function renderCores(){
 function renderSys(){
   const c = S.snap?.cpu || {}, r = S.snap?.ram || {}, n = S.snap?.net || {}, e = S.snap?.energia || {};
   const nv = (S.snap?.nvme || []).reduce((a, x) => Math.max(a, x.temp_c || 0), 0);
-  const disks = (S.snap?.disks || []).filter(d => ["/mnt/H", "/mnt/G", "/"].includes(d.path));
+  const disks = (S.snap?.disks || []).slice(0, 3);
   const rows = [
     ["CPU", c.percent, `${fi(c.percent)}%  ${fi(c.temp_package_c)}C  ${fi(c.cores)}w`],
     ["LOAD", Math.min(100, pct(c.load1, c.cores || 24) * 100), `${f1(c.load1)} z ${fi(c.cores)}`],

@@ -25,15 +25,15 @@ printf 'psu_sprawnosc: 0.92\nvram_margin_mb: 256\n# Urzadzenia stale wlaczone po
 cp "$K/serwer/taryfa.yaml" "$T/serwer/domyslne/taryfa.yaml"; printf '[]\n' > "$T/serwer/domyslne/models.yaml"
 cat > "$T/serwer/start.sh" <<'S'
 #!/bin/bash
-# Usluga danych Mission Control (tylko 127.0.0.1). Dane uzytkownika: ~/.local/share/mission-control.
+# Mission Control data service (127.0.0.1 only). User data: ~/.local/share/mission-control.
 T="$(cd "$(dirname "$0")" && pwd)"; PORT="${CENTRUM_PORT:-8770}"
 export CENTRUM_DANE="${CENTRUM_DANE:-${XDG_DATA_HOME:-$HOME/.local/share}/mission-control}"
 mkdir -p "$CENTRUM_DANE/logs"
 for f in config.yaml taryfa.yaml models.yaml; do [ -e "$CENTRUM_DANE/$f" ] || cp "$T/domyslne/$f" "$CENTRUM_DANE/$f"; done
 PY=$(command -v python3.12 || command -v python3 || true)
-if [ -z "$PY" ] || [ "$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])')" != "3.12" ]; then echo "Mission Control: usluga danych wymaga Pythona 3.12 (polecenie python3.12). Okno dziala bez niej w trybie symulacji." >&2; exit 0; fi
+if [ -z "$PY" ] || [ "$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])')" != "3.12" ]; then echo "Mission Control: the data service needs Python 3.12 (command python3.12). Without it the window runs in simulation mode." >&2; exit 0; fi
 # port zajety przez dzialajaca juz usluge: nic nie robimy
-if "$PY" -c "import socket,sys; s=socket.socket(); s.settimeout(.5); sys.exit(0 if s.connect_ex(('127.0.0.1',$PORT))==0 else 1)"; then echo "port $PORT zajety: usluga juz dziala"; exit 0; fi
+if "$PY" -c "import socket,sys; s=socket.socket(); s.settimeout(.5); sys.exit(0 if s.connect_ex(('127.0.0.1',$PORT))==0 else 1)"; then echo "port $PORT is in use: the service is already running"; exit 0; fi
 export CUDA_DEVICE_ORDER=PCI_BUS_ID PYTHONPATH="$T/lib:$T" PYTHONDONTWRITEBYTECODE=1 CENTRUM_STATE="$CENTRUM_DANE/state.json"
 cd "$T" && exec "$PY" -m uvicorn centrum.app:app --host 127.0.0.1 --port "$PORT"
 S
@@ -48,7 +48,7 @@ S
 chmod 755 "$T/bin/uruchom.sh"
 find "$T" -type d -exec chmod 755 {} +; find "$T" -type f ! -name mission-control ! -name '*.sh' -exec chmod 644 {} +
 USLUGA='[Unit]
-Description=Mission Control - usluga danych (sprzet, modele, energia; port 8770)
+Description=Mission Control - data service (hardware, models, energy; port 8770)
 
 [Service]
 Type=simple
@@ -64,8 +64,8 @@ SKROT='[Desktop Entry]
 Type=Application
 Version=1.0
 Name=Mission Control
-Comment=Podgląd sprzętu, modele AI i energia
-Comment[en]=Hardware monitor, AI models and energy
+Comment=Hardware monitor, AI models and energy
+Comment[pl]=Podgląd sprzętu, modele AI i energia
 Exec=@EXEC@
 Icon=mission-control
 Terminal=false
@@ -107,7 +107,7 @@ command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database -q
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -f /usr/share/icons/hicolor || true
 cat <<'W'
 
-  MISSION CONTROL - terms of use / warunki korzystania
+  MISSION CONTROL - terms of use
   The program is provided "as is", WITHOUT ANY WARRANTY. The author is not liable for
   any damage. You install and use it at your own risk. Modifying the program or using
   its code requires the author's written consent.
@@ -134,29 +134,29 @@ fakeroot dpkg-deb --build --root-owner-group "$P" "$DEB" >/dev/null
 U="$R/run"; mkdir -p "$U/ikony"; cp -a "$T" "$U/program"
 for n in 16 24 32 48 64 128 256 512; do cp "$I/ikona/mission-control-$n.png" "$U/ikony/$n.png"; done
 printf '%s\n' "$USLUGA" > "$U/usluga.wzor"; printf '%s\n' "$SKROT" > "$U/skrot.wzor"
-cat > "$U/program/odinstaluj.sh" <<'S'
+cat > "$U/program/uninstall.sh" <<'S'
 #!/bin/sh
-# Usuwa Mission Control zainstalowane instalatorem .run. Dane uzytkownika (~/.local/share/mission-control) zostaja.
+# Removes Mission Control installed with the .run installer. User data (~/.local/share/mission-control) stays.
 D="${XDG_DATA_HOME:-$HOME/.local/share}"; C="${XDG_CONFIG_HOME:-$HOME/.config}"; KAT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-case "$KAT" in */mission-control) ;; *) echo "Nie rozpoznaje katalogu programu: $KAT" >&2; exit 1 ;; esac
+case "$KAT" in */mission-control) ;; *) echo "Unrecognised program folder: $KAT" >&2; exit 1 ;; esac
 systemctl --user disable --now mission-control-serwer.service >/dev/null 2>&1 || true
 rm -f "$C/systemd/user/mission-control-serwer.service" "$D/applications/mission-control.desktop" "$HOME/.local/bin/mission-control" "$C/autostart/centrum-misji-v2.desktop"
 for n in 16 24 32 48 64 128 256 512; do rm -f "$D/icons/hicolor/${n}x${n}/apps/mission-control.png"; done
 rm -rf "$KAT"
-echo "Mission Control odinstalowane / uninstalled."
+echo "Mission Control uninstalled."
 S
-chmod 755 "$U/program/odinstaluj.sh"
+chmod 755 "$U/program/uninstall.sh"
 tar -C "$U" -czf "$R/dane.tar.gz" program ikony usluga.wzor skrot.wzor
 RUN="$K/wydanie/mission-control-${WERSJA}-linux-x86_64.run"
 cat > "$RUN" <<'S'
 #!/bin/sh
-# Instalator Mission Control dla Linuksa (x86_64). Instaluje dla biezacego uzytkownika, bez hasla administratora.
-#   sh mission-control-*.run            instalacja z pytaniem o warunki
-#   sh mission-control-*.run --accept   instalacja bez pytania (akceptujesz warunki)
+# Mission Control installer for Linux (x86_64). Installs for the current user, no administrator password.
+#   sh mission-control-*.run            install, asking you to accept the terms
+#   sh mission-control-*.run --accept   install without asking (you accept the terms)
 set -e
 D="${XDG_DATA_HOME:-$HOME/.local/share}"; C="${XDG_CONFIG_HOME:-$HOME/.config}"; KAT="$HOME/.local/opt/mission-control"
-[ "$(uname -m)" = x86_64 ] || { echo "Ten pakiet jest dla x86_64 / this package is for x86_64." >&2; exit 1; }
-WARUNKI='MISSION CONTROL - terms of use / warunki korzystania
+[ "$(uname -m)" = x86_64 ] || { echo "This package is for x86_64." >&2; exit 1; }
+WARUNKI='MISSION CONTROL - terms of use
 
 EN: The program is provided "as is", WITHOUT ANY WARRANTY. The author is not liable for any
     damage, data loss or hardware failure. You install and use it entirely at your own risk.
@@ -168,8 +168,8 @@ PL: Program jest udostepniany w stanie, w jakim jest, BEZ ZADNEJ GWARANCJI. Auto
     wylacznie na wlasna odpowiedzialnosc. Bez pisemnej zgody autora nie wolno modyfikowac
     programu, wykorzystywac jego kodu, odtwarzac go ani rozpowszechniac wersji zmienionych.'
 if [ "${1:-}" != "--accept" ]; then
-  if [ -t 0 ]; then printf '%s\n\nAccept / akceptujesz? [yes/tak/no]: ' "$WARUNKI"; read -r O; case "$O" in yes|y|tak|t|YES|TAK) ;; *) echo "Przerwano / aborted."; exit 1 ;; esac
-  else echo "$WARUNKI"; echo; echo "Uruchom w terminalu albo z --accept / run in a terminal or with --accept." >&2; exit 1; fi
+  if [ -t 0 ]; then printf '%s\n\nDo you accept? [yes/no]: ' "$WARUNKI"; read -r O; case "$O" in yes|y|tak|t|YES|TAK) ;; *) echo "Aborted."; exit 1 ;; esac
+  else echo "$WARUNKI"; echo; echo "Run it in a terminal or with --accept." >&2; exit 1; fi
 fi
 POCZ=$(awk '/^__DANE__$/ {print NR + 1; exit}' "$0"); TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 tail -n +"$POCZ" "$0" | tar -xz -C "$TMP"
@@ -182,8 +182,8 @@ sed "s|@EXEC@|\"$KAT/bin/uruchom.sh\"|" "$TMP/skrot.wzor" > "$D/applications/mis
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database -q "$D/applications" 2>/dev/null || true
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -f -t "$D/icons/hicolor" 2>/dev/null || true
 if [ -z "${MC_BEZ_USLUGI:-}" ]; then systemctl --user daemon-reload >/dev/null 2>&1 && systemctl --user enable mission-control-serwer.service >/dev/null 2>&1 || true; fi
-echo "Mission Control zainstalowane / installed: $KAT"
-echo "Start: menu programow albo polecenie mission-control (~/.local/bin). Odinstalowanie / uninstall: $KAT/odinstaluj.sh"
+echo "Mission Control installed: $KAT"
+echo "Start: applications menu or the mission-control command (~/.local/bin). Uninstall: $KAT/uninstall.sh"
 exit 0
 __DANE__
 S

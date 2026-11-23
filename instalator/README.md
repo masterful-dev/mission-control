@@ -6,12 +6,12 @@ Ikona programu: `ikona/mission-control-1024.png` (z niej powstają rozmiary 16�
 |---|---|---|
 | `wydanie/mission-control_<wersja>_amd64.deb` | Debian, Ubuntu 24.04, Linux Mint 22 (apt, dpkg, graficzny instalator pakietów) | `instalator/linux/zbuduj.sh` |
 | `wydanie/mission-control-<wersja>-linux-x86_64.run` | każdy Linux x86_64, instalacja dla użytkownika bez hasła administratora | `instalator/linux/zbuduj.sh` |
-| `wydanie/MissionControl-<wersja>-instalator.exe` | Windows 10 i 11, bez uprawnień administratora | `instalator/windows/zbuduj-instalator.sh` |
+| `wydanie/MissionControl-<wersja>-setup.exe` | Windows 10 i 11, bez uprawnień administratora | `instalator/windows/zbuduj-instalator.sh` |
 
 ## Instalacja
 
-    sudo apt install ./mission-control_2.1.0_amd64.deb          # usuwanie: sudo apt remove mission-control
-    sh mission-control-2.1.0-linux-x86_64.run                   # usuwanie: ~/.local/opt/mission-control/odinstaluj.sh
+    sudo apt install ./mission-control_2.1.1_amd64.deb          # usuwanie: sudo apt remove mission-control
+    sh mission-control-2.1.1-linux-x86_64.run                   # usuwanie: ~/.local/opt/mission-control/uninstall.sh
 
 | Co | `.deb` | `.run` |
 |---|---|---|

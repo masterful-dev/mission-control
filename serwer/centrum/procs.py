@@ -159,7 +159,7 @@ def _entry_pids(entry: dict) -> set[int]:
 
 
 def entry_identity(entry: dict) -> dict:
-    """Odcisk palca PID-ow wpisu: {pid: create_time} — zapisany przy starcie (AUDYT #3).
+    """Odcisk palca PID-ow wpisu: {pid: create_time} — zapisany przy starcie.
 
     Po restarcie komputera PID bywa przejety przez nowy proces (np. gnome-shell) — create_time
     sie rozni, wiec Centrum NIE wysyla SIGKILL do przypadkowego procesu."""
@@ -342,7 +342,7 @@ def stan_pid_to_model(model: dict, data: dict) -> bool:
         return True
     if bool(start):
         # jednokierunkowe okno: proces utworzony PRZED 'start' (ponizej tolerancji) to proces
-        # sprzed rebootu/obcy — nie ten model (AUDYT #5: abs() akceptowalo tez obce PID-y)
+        # sprzed rebootu/obcy — nie ten model (abs() akceptowalo tez obce PID-y)
         return create_time >= start - STAN_CLOCK_TOLERANCE_S
     return False  # brak 'start' i brak nazwy launchera w cmdline — brak dowodu, ze to ten launcher
 
@@ -467,6 +467,9 @@ def _sub(text: str, subs: dict[str, str]) -> str:
 
 def _base_env(model: dict, placement: dict) -> dict:
     env = dict(os.environ)
+    # zmienne samej uslugi danych nie ida do modeli (jej biblioteki zepsulyby srodowisko Pythona modelu)
+    for klucz in ("PYTHONPATH", "PYTHONDONTWRITEBYTECODE", "CENTRUM_DANE", "CENTRUM_STATE", "CENTRUM_PORT"):
+        env.pop(klucz, None)
     env["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     gpus = placement.get("gpus") or []
     if gpus:
@@ -556,7 +559,7 @@ def _start_cmd(model: dict, placement: dict) -> dict:
     except OSError:
         pgid = None
     entry = {"kind": "cmd", "pid": proc.pid, "pgid": pgid, "port": model.get("port"), "log": log}
-    entry["pid_start"] = {str(k): v for k, v in entry_identity(entry).items()}  # odcisk palca (AUDYT #3)
+    entry["pid_start"] = {str(k): v for k, v in entry_identity(entry).items()}  # odcisk palca
     return entry
 
 
@@ -584,7 +587,7 @@ def _start_launcher(model: dict, placement: dict) -> dict:
                                     stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True)
     # launcher zapisuje stan w pliku zaleznym od portu/trybu — dwa modele na tym samym porcie sie nie gryza
     # strata 125B laduje sie dlugo — dlugi deadline; po jego przekroczeniu zabijamy launchera,
-    # zeby nie zostawic polowicznie uruchomionego procesu trzymajacego VRAM/pidfile (AUDYT #4)
+    # zeby nie zostawic polowicznie uruchomionego procesu trzymajacego VRAM/pidfile
     deadline = time.monotonic() + LAUNCHER_STAN_TIMEOUT_S
 
     def wpis_ze_stanu() -> dict | None:
@@ -631,7 +634,7 @@ def _kill_group(entry: dict, force: bool = False) -> None:
 
     Adptowany launcher (llm.py) nie jest liderem grupy (pgid != pid); killpg(pgid) zabilby
     cala grupa procesow, ktora prowadzi do tego PID-a — np. caly terminal, z ktorego model
-    zostal uruchomiony (AUDYT #2). Grupa = tylko procesy startowane przez Centrum (start_new_session)."""
+    zostal uruchomiony. Grupa = tylko procesy startowane przez Centrum (start_new_session)."""
     pid = int(entry.get("pid") or 0)
     if not pid:
         return
@@ -722,7 +725,7 @@ def stop(model_id: str, force: bool = False) -> dict:
             return {"id": model_id, "status": "stopped", "note": "model nie dokonywal"}
         if _stale_entry(entry) or _pid_zajety(entry):
             # PID z state.json to juz INNY proces (przejety po restarcie komputera) — NIE zabijamy,
-            # tylko usuwamy przedawniony wpis (AUDYT #3)
+            # tylko usuwamy przedawniony wpis
             state.pop(model_id, None)
             save_state(state)
             _health_cache.pop(model_id, None)
@@ -795,7 +798,7 @@ def refresh(models: list[dict]) -> dict:
     """Przeliczenie stanow (wywolywane co 250 ms przez producenta stanu). Nie blokuje, gdy trwa start/stop.
 
     Cale drzewo /proc czytamy RAZ na tick (ppid_map) — wczesniej kazdy model/czytnik przerzucal
-    caly /proc osobno (AUDYT #8 / Znalezisko Claude'a: 4x /proc na stan)."""
+    caly /proc osobno (4x /proc na stan)."""
     if not _lock.acquire(blocking=False):
         return load_state()
     try:
