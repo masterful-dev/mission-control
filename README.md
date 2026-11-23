@@ -2,36 +2,31 @@
 
 # Mission Control
 
-**One window that shows what your workstation is doing, and lets you decide what it does next.**
+A desktop window that watches your hardware and runs your local models.
+Your graphics cards, processor, RAM, disks and power draw in one place,
+the model list with contexts and ports, and the current power draw
+with cost.
 
-Mission Control is a native desktop application for people who run AI models on their own hardware.
-It watches the machine (graphics cards, processor, memory, disks, power draw) and starts and stops
-your local models from the same window.
-
-I built it because I kept missing it: a hardware monitor that also knows which model is loaded,
-on which card, and what it costs to keep it running.
+It is written in C++20 (SDL3, OpenGL 3.3, Dear ImGui) with a Python data service.
+One executable, no extra runtime to install for the window itself.
 
 ## What it does
 
-- **Hardware at a glance.** Load, memory and temperature of every graphics card, plus processor, RAM and disks.
-- **Your models in one list.** Each model shows the cards it needs, its context size and its port. Start or stop it with one click.
-- **Energy you can read.** Power draw now, the last 48 hours, the last 30 days and the current month, with tariff zones for cost.
-- **A face that follows the work.** An animated face shows whether the model is reading, thinking or answering.
-- **A layout that is yours.** Drag any panel by its title, stretch it by its edge, and the layout is saved on the spot.
-- **English and Polish interface.**
-- **A simulation mode.** Without the data service the window runs on simulated data, so you can look around before connecting anything.
+- Hardware at a glance: load, memory and temperature of every GPU, plus CPU, RAM and disks.
+- Models in one list: each model shows its GPUs, context size and port. Start and stop with one click.
+- Energy: current power draw, the last 48 hours, the last 30 days and the current month, with tariff zones.
+- An animated face that shows whether the model is reading, thinking or answering.
+- Layout: drag panels by their title, stretch them by their edge. Saved on the spot.
+- English and Polish interface.
+- Simulation mode, so the window still works before the data service is connected.
 
 ## Editions
 
-Mission Control is one program built from one codebase. It ships in two editions, and both live in this repository:
-
 | Edition | Package | For | Status |
 |---|---|---|---|
-| **Linux** | `.deb` | Debian, Ubuntu 24.04, Linux Mint 22 | ready |
-| **Linux** | `.run` | any x86_64 Linux, installs without administrator rights | ready |
-| **Windows** | `setup.exe` | Windows 10 and 11, installs without administrator rights | preview: built and packaged, not yet verified on a Windows machine |
-
-Downloads are published under **Releases**, one release per version, with the Linux and Windows packages side by side.
+| Linux | `.deb` | Debian, Ubuntu 24.04, Linux Mint 22 | ready |
+| Linux | `.run` | any x86_64 Linux, no administrator rights needed | ready |
+| Windows | `setup.exe` | Windows 10 and 11, no administrator rights needed | preview |
 
 ## Install
 
@@ -39,41 +34,33 @@ Downloads are published under **Releases**, one release per version, with the Li
 
     sudo apt install ./mission-control_2.1.1_amd64.deb
 
-Remove it with `sudo apt remove mission-control`.
+    sudo apt remove mission-control
 
-**Any x86_64 Linux, without administrator rights**
+**Any x86_64 Linux, no administrator rights**
 
     sh mission-control-2.1.1-linux-x86_64.run
 
-The program goes to `~/.local/opt/mission-control` and appears in the applications menu.
-Remove it with `~/.local/opt/mission-control/uninstall.sh`.
+Installs to `~/.local/opt/mission-control`. Remove with `~/.local/opt/mission-control/uninstall.sh`.
 
 **Windows 10 and 11**
 
-Run `MissionControl-2.1.1-setup.exe`. It installs for the current user and adds shortcuts to the Start menu and the desktop.
-Remove it from *Installed apps* in Windows settings.
+Run `MissionControl-2.1.1-setup.exe`. Installs for the current user, adds shortcuts to the Start menu and the desktop.
+Remove from *Installed apps* in Windows settings.
 
-The `.run` and Windows installers ask you to accept the terms of use before they install anything; the program itself asks again on first start.
+The `.run` and Windows installers ask you to accept the terms of use before installing.
 Your data (model list, settings, energy history) stays in your user profile when the program is removed.
-Each release comes with `SHA256SUMS.txt`, so you can check a download with `sha256sum -c SHA256SUMS.txt`.
 
 ## Requirements
 
-- A 64-bit (x86_64) system with OpenGL 3.3.
-- Python 3.12 for the background data service. Without it the window still runs, in simulation mode.
+- 64-bit (x86_64) system with OpenGL 3.3.
+- Python 3.12 for the background data service. Without it the window runs in simulation mode.
 - The data service listens on `127.0.0.1` only.
-
-## Built with
-
-C++20, SDL3, OpenGL 3.3 and Dear ImGui for the window; Python for the data service.
-Every library is compiled into the executable, so there is nothing extra to install for the window itself.
 
 ## Terms of use
 
-Mission Control is provided "as is". The source code is not published, and modifying
-the program or reusing its code requires the author's written consent. Full terms: [LICENSE.txt](LICENSE.txt)
-(Polish version: [LICENCJA.txt](LICENCJA.txt)).
-
+Mission Control is provided "as is". The source code is not published.
+Modifying the program or reusing its code requires the author's written consent.
+Full terms: [LICENSE.txt](LICENSE.txt) (Polish: [LICENCJA.txt](LICENCJA.txt)).
 Bundled third-party components keep their own licences: [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 
 ## Repository layout
@@ -81,13 +68,11 @@ Bundled third-party components keep their own licences: [THIRD-PARTY-NOTICES.txt
 | Katalog | Zawartość |
 |---|---|
 | `program/` | okno: C++20, SDL3, OpenGL 3.3, Dear ImGui (`program/README.md`) |
-| `serwer/` | usługa danych w Pythonie 3.12 (`centrum/`), jej biblioteki (`biblioteki-py312/`, lista w `requirements.txt`) |
+| `serwer/` | usługa danych w Pythonie 3.12 (`centrum/`), jej biblioteki (`biblioteki-py312/`) |
 | `instalator/` | pakiety instalacyjne, ikona, warunki korzystania (`instalator/README.md`) |
 | `PLAN-WLASNE-SKLADNIKI.md` | jak zastąpić cudze składniki własnymi |
 
-Build: `program/buduj.sh` (Linux), `program/buduj-windows.sh` (Windows from Linux), `instalator/linux/zbuduj.sh`, `instalator/windows/zbuduj-instalator.sh`.
-The Windows compiler (llvm-mingw, about 1 GB) is not in the repository: unpack the llvm-mingw Linux x86_64 release into `program/zewnetrzne/llvm-mingw/`.
-
----
-
-<sub>Mission Control by <a href="https://github.com/masterful-dev">Masterful</a>.</sub>
+Build: `program/buduj.sh` (Linux), `program/buduj-windows.sh` (Windows from Linux),
+`instalator/linux/zbuduj.sh`, `instalator/windows/zbuduj-instalator.sh`.
+The Windows compiler (llvm-mingw, about 1 GB) is not in the repository:
+unpack the llvm-mingw Linux x86_64 release into `program/zewnetrzne/llvm-mingw/`.
